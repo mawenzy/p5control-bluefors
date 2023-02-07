@@ -1,0 +1,133 @@
+'<ADbasic Header, Headerversion 001.001>
+' Process_Number                 = 1
+' Initial_Processdelay           = 1000
+' Eventsource                    = Timer
+' Control_long_Delays_for_Stop   = No
+' Priority                       = High
+' Version                        = 1
+' ADbasic_Version                = 6.1.0
+' Optimize                       = Yes
+' Optimize_Level                 = 1
+' Stacksize                      = 1000
+' Info_Last_Save                 = DESKTOP-4GUN5RJ  DESKTOP-4GUN5RJ\TPOffice
+'<Header End>
+
+#Define Buffersize 800000                ' Anzahl der Werte über die gemittelt wird (10^6 funktioniert nicht)
+
+Dim Data_1[Buffersize] as Float as FIFO   ' Strom I über die Probe 
+Dim Data_2[Buffersize] as Float as FIFO   ' Spannung U an der Probe
+Dim Data_3[Buffersize] as Float as FIFO   ' differentieller Strom dI über die Probe
+Dim Data_4[Buffersize] as Float as FIFO   ' differentielle Spannung dU an der Probe
+Dim Data_7[Buffersize] as Float as FIFO   ' Temperatur [K] an der Probe
+
+Dim c1, c2, c3, c4, c7, c6 as Long
+Dim mp12, mp34, mp76 as Long
+Dim count, mean as Long
+Dim oldtime as Long
+
+Init:
+
+  c1 = 0
+  c2 = 0
+  c3 = 0
+  c4 = 0
+  c7 = 0
+  c6 = 0
+  
+  Par_19  = 0     'aquire current mean value
+  Par_20  = 100    'averaging factor
+  Par_21  = 0     'time stamp
+  oldtime = Par_21
+  FPar_22  = 10 'temp offset
+  FPar_23  = 5  'temp factor
+  
+  
+  ' set verstärkung according Gold-HW p.50
+  Par_1 = 00b
+  Par_2 = 00b
+  Par_3 = 00b
+  Par_4 = 00b
+  Par_7 = 00b
+  Par_6 = 00b
+    
+  FPar_31 = 3.0517578125*10^-05
+  FPar_32 = 3.0517578125*10^-05
+  FPar_33 = 3.0517578125*10^-05
+  FPar_34 = 3.0517578125*10^-05
+  FPar_37 = 3.0517578125*10^-05
+  FPar_36 = 3.0517578125*10^-05 
+   
+  FPar_41 = 10
+  FPar_42 = 10
+  FPar_43 = 10
+  FPar_44 = 10
+  FPar_47 = 10
+  FPar_46 = 10
+  
+  FPar_19 = 0 'temperature
+  FPar_20 = 0 'time stamp
+  
+  
+  mp12 = (000000b | shift_left(Par_1, 6)) | shift_left(Par_2, 8)  ' Gold-HW p.55
+  mp34 = (001001b | shift_left(Par_3, 6)) | shift_left(Par_4, 8)
+  mp76 = (010011b | shift_left(Par_7, 6)) | shift_left(Par_6, 8)
+  
+  Set_Mux(mp12) ' needs 6.5us to be done 
+  Sleep(65) ' waits 6.5us
+  
+EVENT:
+  ' sets value over which it is averaged
+  mean = Par_20
+  mp12 = (000000b | shift_left(Par_1, 6)) | shift_left(Par_2, 8)  ' Gold-HW p.55
+  mp34 = (001001b | shift_left(Par_3, 6)) | shift_left(Par_4, 8)
+  mp76 = (010011b | shift_left(Par_7, 6)) | shift_left(Par_6, 8)
+  
+  If (Par_21 = mean) Then
+    
+    Data_1 = c1/mean*FPar_31-FPar_41 'Data_1 = c1/mean*38.147*10^-6-1.25
+    Data_2 = c2/mean*FPar_32-FPar_42 'Data_2 = c2/mean*38.147*10^-6-1.25
+    'Pro digit 305.175uV -10V Offset. Vgl. S.13 ADwin Gold Handbuch
+    c1 = 0
+    c2 = 0
+    Data_3 = c3/mean*FPar_33-FPar_43 'Data_1 = c1/mean*38.147*10^-6-1.25
+    Data_4 = c4/mean*FPar_34-FPar_44 'Data_2 = c2/mean*38.147*10^-6-1.25
+    'Pro digit 305.175uV -10V Offset. Vgl. S.13 ADwin Gold Handbuch
+    c3 = 0
+    c4 = 0
+    Data_7 = (c7/mean*FPar_37-FPar_47+FPar_22)*FPar_23 'Data_1 = c1/mean*38.147*10^-6-1.25
+    c7 = 0 
+    FPar_20 = 1/((Read_Timer() - oldtime + 27)* 25*10^-9) '8 offset durch 2 read befehle
+    oldtime = Read_Timer()
+    Par_21 = 0
+  endif
+  ' Par_19: Loop index
+  ' Par_19 = Par_19+1
+  Inc(Par_21)
+  
+  ' Start converting analog mux1/2 to digital Gold-HW p.57
+  Start_Conv(11b)  ' needs 5us
+  Set_Mux(mp34) 'Multiplexer auf Kanal 3 und 4 setzen
+  Wait_EOC(11b) 'waits for start_conv, set_mux running in parallel
+  c1 = c1 + ReadADC(1) 'Spannung am Referenzwiderstand
+  c2 = c2 + ReadADC(2) 'Spannung an der Probe
+  Sleep(15) ' waits additional 1.5us for musker to be finished
+  
+  ' Start converting analog mux 3/4 to digital
+  Start_Conv(11b)
+  Set_Mux(mp76) 'Multiplexer auf Kanal 7 setzen
+  Wait_EOC(11b)
+  c3 = c3 + ReadADC(1) 'Lock In Spannung am Referenzwiderstand
+  c4 = c4 + ReadADC(2) 'Lock In Spannung an der Probe
+  Sleep(15)
+  'Par_13 = Data_3
+  'Par_14 = Data_4
+  
+  Start_Conv(11b)
+  Set_Mux(mp12) 'Multiplexer auf Kanal 1 und 2 setzen
+  Wait_EOC(11b)
+  c7 = c7 + ReadADC(1) 'Temperatur von LakeShore
+  c6 = c6 + ReadADC(2) 'not used
+  'Par_15 = Data_7[0]
+  'Par_16 = Data_6
+  Sleep(15)
+  
