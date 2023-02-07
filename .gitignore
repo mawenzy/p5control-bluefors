@@ -1,0 +1,7 @@
+*.pyc
+*.hdf5
+*.log
+
+.data/*
+
+test*
