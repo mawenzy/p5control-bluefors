@@ -1,6 +1,8 @@
 from p5control import DataGateway, InstrumentGateway
 import numpy as np
 
+from qtpy.QtCore import QThread
+
 from time import sleep, time
 from scipy.signal import savgol_filter as sg
 from scipy.signal import find_peaks as fp
@@ -8,69 +10,7 @@ from scipy.optimize import curve_fit
 from logging import getLogger
 
 logger = getLogger(__name__)
-
-# Pre - Definitions
-def get_min_max_peaks(V, t, frequency, sweep_counts):
-    win_len = int(sweep_counts/frequency)
-    smooth_V = sg(V, window_length=win_len, polyorder=1)
-    dV = np.gradient(smooth_V)
-    smooth_dV = sg(dV, window_length=win_len, polyorder=1)
-    ddV = np.gradient(smooth_dV)
-    smooth_ddV = sg(ddV, window_length=win_len, polyorder=1)
-
-    sym_ddV = smooth_ddV - np.mean(smooth_ddV)
-
-    min_peaks = fp(sym_ddV, 
-                    height=.25*np.nanmax(sym_ddV), 
-                    distance=2*win_len)[0]
-    max_peaks = fp(-sym_ddV,
-                    height=.25*np.nanmax(sym_ddV),
-                    distance=2*win_len)[0]
-
-    if len(min_peaks) == len(max_peaks):
-        min_peaks = np.append(min_peaks, [-1])
-    return min_peaks, max_peaks
-
-def get_up_down_sweep(array, mins, maxs):
-    up = np.array([])
-    down = np.array([])
-    for i, p in enumerate(maxs):
-        up = np.append(up, array[mins[i]:p])
-        down = np.append(down, array[p:mins[i+1]])
-    return up, down
-
-def get_binned_current(voltage, current, bins):
-    bins = np.append(bins, 2 * bins[-1] - bins[-2])
-    _count, _ = np.histogram(voltage,
-                            bins = bins,
-                            weights=None)
-    _count = np.array(_count, dtype='float64')
-    _count[_count==0] = np.nan
-    _sum, _ = np.histogram(voltage,
-                        bins =bins,
-                        weights=current)
-    return _sum/_count
-
-def calc_rms(x):
-    return np.sqrt(np.nanmean(np.abs(x)**2))
-    
-def lin_fit_1(V, R, I_0_1, I_0_2):
-        return V / R + I_0_1
-
-def lin_fit_2(V, R, I_0_1, I_0_2):
-        return V / R + I_0_2
-
-def combined_lin_fit(VV, R, I_0_1, I_0_2):
-    # single data reference passed in, extract separate data
-    # assumes biggest jump in voltage to be dividing index
-    index = np.argmax(VV[:-1]-VV[1:])
-    res1 = lin_fit_1(VV[:index], R, I_0_1, I_0_2)
-    res2 = lin_fit_2(VV[index:], R, I_0_1, I_0_2)
-    return np.append(res1, res2)
-
-
-#######################################################################################
-class Sweeps:
+class Sweeper(QThread):
     """Sweeping tool
 
     Parameters
@@ -78,23 +18,23 @@ class Sweeps:
     name : str
         name for this instance
     """
-    def __init__(self, name: str):
-        self._name = name
+    def __init__(self, 
+                 name: str = 'sweep',
+                 delay_time: float = .1):
+        super().__init__()
 
-        self._parental_name = "meta"
+        # Names
+        self._name = name   
         self._hdf5_path = 'm000000'
+        self._offset_name = "offsets"
+        self._resistance_name = "resistances"
+        self._sweeps_name = "sweeps"
 
-        # Offset
-        self._delay_time = .1
-        self._offset_time = 1
+        self._delay_time = delay_time
         self._max_current =.1
 
-        # Sweeps
-        self._amplitude = .1
-        self._frequency = 2
-        self._sweep_counts = 5
-
         self.open()
+        
     
     def open(self):
         self.gw = InstrumentGateway()
@@ -104,49 +44,43 @@ class Sweeps:
         self.dgw.connect()
 
         """Just logs the call to debug."""
-        logger.debug(f'{self._name}.open()')
-
-    def get_dataset(self, tic, toc, tic_ndx, path, multi_keyword):
+        logger.debug(f'sweeps/offset.open()')
+    
+    
+    def _get_dataset(self, tic, toc, tic_ndx, path, multi_keyword):
         path = f"{path}/multi_{multi_keyword}/"
         while True:
             try:
-                if self.dgw.get_data(path, indices=slice(-1, None, None), field='time')[0] > toc:
+                test = self.dgw.get_data(path, indices=slice(-1, None, None), field='time')[0]
+                if test > toc:
                     break
             except KeyError:
                 sleep(self._delay_time)
+
         multi = self.dgw.get_data(path, indices=slice(tic_ndx, None, None))
         time, V = multi['time'], multi['V']
         indices = (np.argmin(np.abs(time-tic)), 
                    np.argmin(np.abs(time-toc)))
         return time[indices[0]:indices[1]], V[indices[0]:indices[1]]
 
-    """
-    Status measurement
-    """
-    def get_status(self):
-        """Returns the current amplitude and frequency."""
-        logger.debug(f'{self._name}.get_status()')
-        return {
-            "delay_time": self._delay_time,
-            "offset_time": self._offset_time,
-            'max_current': self._max_current
-        }
 
-    """
-    change parameters
-    """
-    def setDelayTime(self, value: float):
-        """Set delay time to ``value``."""
-        self._delay_time = value
-        
-    def setOffsetTime(self, value: float):
-        """Set offset time to ``value``."""
-        self._offset_time = value
+#######################################################################################
+class Offsets(Sweeper):
+    """Sweeping tool
 
-    def setMaxCurrent(self, value: float):
-        """Set Max Current to ``value``."""
-        self._max_current = value
+    Parameters
+    ----------
+    name : str
+        name for this instance
+    """
+    def __init__(self):
+        super().__init__()
 
+        # Offset
+        self._offset_time = 1    
+
+    def run(self) -> None:
+        self.get_offset()
 
     """
     Measurement
@@ -160,15 +94,15 @@ class Sweeps:
             stop_measurement = True
             m.start()
 
-        # setup bias_source to CV 0V output
-        self.gw.source_bias.setup_offset_measurement(max_current=self._max_current)
+        # setup bias_source amplitude to 0V output
+        self.gw.source_bias.set_amplitude(0)
 
         # wait for measurement
         tic_ndx = []
         for s in ['reference', 'sample', 'source']:
             # if measurement just started, dataset doen't exist => Keyerror
             try:
-                tic_ndx.append(int(self.dgw.get(f'{m.path()}/multi_{s}').shape[0]))
+                tic_ndx.append(int(self.dgw.get(f'{m.path()}/multi_{s}').shape[0])-1)
             except KeyError:
                 tic_ndx.append(0)
 
@@ -177,9 +111,9 @@ class Sweeps:
         toc = tic + self._offset_time
 
         # get data from dgw
-        _, ref_V = self.get_dataset(tic, toc, tic_ndx[0], m.path(), multi_keyword='reference')
-        _, sample_V = self.get_dataset(tic, toc, tic_ndx[1], m.path(), multi_keyword='sample')
-        _, source_V = self.get_dataset(tic, toc, tic_ndx[2], m.path(), multi_keyword='source')
+        _, ref_V = self._get_dataset(tic, toc, tic_ndx[0], m.path(), multi_keyword='reference')
+        _, sample_V = self._get_dataset(tic, toc, tic_ndx[1], m.path(), multi_keyword='sample')
+        _, source_V = self._get_dataset(tic, toc, tic_ndx[2], m.path(), multi_keyword='source')
 
         if stop_measurement:
             m.stop()
@@ -188,14 +122,14 @@ class Sweeps:
         my_dict = {'time': tic,
                 'offset_source': np.mean(source_V),
                 'offset_sample':np.mean(sample_V),
-                'offset_ref': np.mean(ref_V),
+                'offset_reference': np.mean(ref_V),
                 'std_source': np.std(source_V),
                 'std_sample': np.std(sample_V),
-                'std_ref': np.std(ref_V)
+                'std_reference': np.std(ref_V)
                 }
 
         # save data
-        path = f"/{self._parental_name}/{self._hdf5_path}/{self._name}"
+        path = f"{self._hdf5_path}/{self._name}/{self._offset_name}"
         self.dgw.append(
             path,
             my_dict,
@@ -204,6 +138,134 @@ class Sweeps:
             max_current = self._max_current
         )
 
+##########################################################################
+"""
+Pre-Definitions
+"""
+
+def get_min_max(t, tmins, tmaxs):
+    mins, maxs = [], []
+    for tmin in tmins:
+        mins.append(np.argmin(np.abs(t-tmin)))
+    for tmax in tmaxs:
+        maxs.append(np.argmin(np.abs(t-tmax)))
+    return mins, maxs
+
+def get_up_down_sweeps(array, mins, maxs):
+    up, down = np.array([]), np.array([])
+    for i, max in enumerate(maxs):
+        up = np.append(up, array[mins[i]:max])
+        down = np.append(down, array[max:mins[i+1]])
+    return up, down
+
+def bin_y_over_x(x, y, bins):
+    bins = np.append(bins, 2 * bins[-1] - bins[-2])
+    _count, _ = np.histogram(x,
+                            bins = bins,
+                            weights=None)
+    _count = np.array(_count, dtype='float64')
+    _count[_count==0] = np.nan
+    _sum, _ = np.histogram(x,
+                    bins =bins,
+                    weights=y)
+    return _sum/_count
+      
+def calc_ptp(V, I):
+    minV, maxV = np.min(V), np.max(V)
+    minI, maxI = np.min(I), np.max(I)
+    return np.abs(maxV-minV)/np.abs(maxI-minI)
+
+def calc_rms(V, I):
+    V_rms = np.sqrt(np.nanmean(np.abs(V)**2))
+    I_rms = np.sqrt(np.nanmean(np.abs(I)**2))
+    return V_rms/I_rms
+
+def calc_lin(V,I):
+    try:
+        [R_lin, I_0_1, I_0_2], _ = curve_fit(combined_lin_fit, V, I)
+    except ValueError:
+        [R_lin, I_0_1, I_0_2] = [np.nan, np.nan, np.nan]
+    return R_lin, I_0_1, I_0_2
+    
+def combined_lin_fit(VV, R, I_0_1, I_0_2):
+    # single data reference passed in, extract separate data
+    # assumes biggest jump in voltage to be dividing index
+    index = np.argmax(VV[:-1]-VV[1:])
+    res1 = lin_fit_1(VV[:index], R, I_0_1, I_0_2)
+    res2 = lin_fit_2(VV[index:], R, I_0_1, I_0_2)
+    return np.append(res1, res2)
+
+def lin_fit_1(V, R, I_0_1, I_0_2):
+        return V / R + I_0_1
+
+def lin_fit_2(V, R, I_0_1, I_0_2):
+        return V / R + I_0_2
+
+
+#########################################################################################################################
+class Sweeps(Sweeper):
+    def __init__(self):
+        super().__init__()
+
+        # Sweeps
+        self._amplitude = .33
+        self._frequency = 2.003
+        self._sweep_counts = 10
+        # Bins
+        self._bin_start = -2e-3
+        self._bin_stop = 2e-3
+        self._bin_points = 401
+    
+    def run(self) -> None:
+        self.get_sweeps()
+
+    """
+    Predefinition
+    """
+
+    def _get_tmin_tmax(self, t, V):
+        win_len = np.nanmax([int(self._sweep_counts/self._frequency), 3])
+
+        smooth_V = sg(V, window_length=win_len, polyorder=1)
+        dV = np.gradient(smooth_V)
+        smooth_dV = sg(dV, window_length=win_len, polyorder=1)
+        ddV = np.gradient(smooth_dV)
+        smooth_ddV = sg(ddV, window_length=win_len, polyorder=1)
+        sym_ddV = smooth_ddV - np.mean(smooth_ddV)
+
+        min_peaks = fp(sym_ddV, 
+                        height=.25*np.nanmax(sym_ddV), 
+                        distance=2*win_len)[0]
+        max_peaks = fp(-sym_ddV,
+                        height=.25*np.nanmax(sym_ddV),
+                        distance=2*win_len)[0]
+
+        while len(min_peaks) <= len(max_peaks):
+            if min_peaks[0]>max_peaks[0]:
+                min_peaks = np.append([0], min_peaks)
+            else:
+                min_peaks = np.append(min_peaks, [-1])
+            print('ERROR IN MIN MAX PEAKS')
+            print(min_peaks, max_peaks)
+        return t[min_peaks], t[max_peaks]
+
+
+    def get_offsets(self):
+        path = f"{self._hdf5_path}/{self._name}/{self._offset_name}"
+        try:
+            ind = int(self.dgw.get(path).shape[0])-1
+            offsets = self.dgw.get_data(path, indices=slice(ind, None, None))
+        except KeyError:
+            offset_sample, offset_reference, offset_time = 0,0, np.nan
+        else:
+            offset_sample = offsets['offset_sample'][0]
+            offset_reference = offsets['offset_reference'][0]
+            offset_time = offsets['time'][0]
+        return offset_sample, offset_reference, offset_time
+
+    """
+    Measurement
+    """
     def get_sweeps(self):
         # if there is no measurement, initiate one
         m = self.gw.measure()
@@ -213,511 +275,242 @@ class Sweeps:
             stop_measurement = True
             m.start()
 
-        # setup bias_source to sweep mode
-        self.gw.source_bias.setup_sweep_measurement(amplitude = self._amplitude,
-                                                frequency = self._frequency,
-                                                sweep_counts = self._sweep_counts, 
-                                                max_current = self._max_current)
+        # setup bias_source to sweep mode        
+        self.gw.source_bias.set_amplitude(self._amplitude)
+        self.gw.source_bias.set_frequency(self._frequency)
+        self.gw.source_bias.set_sweep_count(self._sweep_counts)
         
         # wait for measurement
         tic_ndx = []
-        for s in ['reference', 'sample', 'source']:
+        multi_keywords = ['source', 'sample', 'reference']
+        for s in multi_keywords:
             # if measurement just started, dataset doen't exist => Keyerror
             try:
-                tic_ndx.append(int(self.dgw.get(f'{m.path()}/multi_{s}').shape[0]))
+                ind = int(self.dgw.get(f'{m.path()}/multi_{s}').shape[0])
+                tic_ndx.append(int(np.max([0, ind-2*1000*self._delay_time])))
             except KeyError:
                 tic_ndx.append(0)
-
-        sleep(self._delay_time)
-        self.gw.source_bias.trigger_measurment()
-        tic = time()
-        toc = tic + self._sweep_counts / self._frequency
-
-        # get data from dgw
-        ref_t, ref_V = self.get_dataset(tic, toc, tic_ndx[0], m.path(), multi_keyword='reference')
-        sample_t, sample_V = self.get_dataset(tic, toc, tic_ndx[1], m.path(), multi_keyword='sample')
-        source_t, source_V = self.get_dataset(tic, toc, tic_ndx[2], m.path(), multi_keyword='source')
         
-        # get Offsets
-        offset_sample = 0
-        offset_reference = 0
-
-'''
-
-    def sweep_measurement(self, 
-                            hdf5_path='m000000', parental_name='meta', name='sweeps',
-                            _delay_time = .1, mean_fetch_time = .7,
-                            amplitude = .3, frequency = 1, 
-                            sweep_counts = 10, max_current = .3,
-                            amplification_sample = 100,
-                            amplification_reference = 100,
-                            reference_resistance = 4.7E4,
-                            bin_min=0, bin_max=0, bin_points=0,
-                            exclusion_voltage=3.4E-4*5):
-
-    
-        # TODO
-            # setup just if not setup and busy
-            # divide in measurement and calc
-                # measurement is opt. setup + performing
-                # calculation is rest
-            # make _save_data
-            # get stuff from femto
-            # get ref resistance from somewhere
-
-
-
-        # setup bias_source to sweep mode
-        # TODO: if not setupped and busy (implement in driver)
-        self.gw.source_bias.setup_sweep_measurement(amplitude = amplitude,
-                                                frequency = frequency,
-                                                sweep_counts = sweep_counts, 
-                                                max_current = max_current)
-
-        # wait for measurement
-        if _delay_time != 0:
-            sleep(_delay_time)
-        self.gw.source_bias.trigger_measurment()
+        # wait for source to be ready
+        pre_tic = time()
+        try:
+            while self.dgw.get_data(f'{m.path()}/multi_source', indices=-1, field='time') < pre_tic:
+                sleep(self._delay_time)       
+        except KeyError:
+            sleep(1)
+        
+        self.gw.source_bias.trigger()
         tic = time()
-        tic = tic - _delay_time
-        toc = tic + sweep_counts / frequency + 2 * _delay_time
-        sleep(sweep_counts / frequency + mean_fetch_time)
+        toc = tic + self._sweep_counts / self._frequency + self._delay_time
 
         # get data from dgw
-        ref_t, ref_V = self.get_dataset(tic, toc, multi_keyword='reference', hdf5_path=hdf5_path)
-        sample_t, sample_V = self.get_dataset(tic, toc, multi_keyword='sample', hdf5_path=hdf5_path)
-        source_t, source_V = self.get_dataset(tic, toc, multi_keyword='source', hdf5_path=hdf5_path)
+        source_t, source_V = self._get_dataset(tic, toc, tic_ndx[0], m.path(), multi_keyword=multi_keywords[0])
+        sample_t, sample_V = self._get_dataset(tic, toc, tic_ndx[1], m.path(), multi_keyword=multi_keywords[1])
+        ref_t,       ref_V = self._get_dataset(tic, toc, tic_ndx[2], m.path(), multi_keyword=multi_keywords[2])
 
-        print(len(ref_t), len(sample_t), len(source_t))
-        # while not "same" ask again
-
-        # get Offsets
-        offset_sample = 0
-        offset_reference = 0
-
-        # get current and voltage
-        voltage = ( sample_V - offset_sample ) / amplification_sample
-        current = ( ref_V - offset_reference ) / amplification_reference / reference_resistance
+        if stop_measurement:
+            m.stop()
 
         # get min und max peak indices
-        mins, maxs = get_min_max_peaks(source_V, source_t, frequency, sweep_counts)
+        tmins, tmaxs = self._get_tmin_tmax(source_t, source_V)
+
+        ## get binned t
+        bint = np.linspace(
+            np.min([
+                np.nanmin(source_t), 
+                np.nanmin(sample_t), 
+                np.nanmin(ref_t)
+                ]),
+            np.max([
+                np.nanmax(source_t), 
+                np.nanmax(sample_t), 
+                np.nanmax(ref_t)
+                ]),
+            int(np.mean([
+                np.shape(source_t)[0],
+                np.shape(sample_t)[0],
+                 np.shape(ref_t)[0]
+                 ])/10)
+        )
+
+        ## get binned sample_V and ref_V 
+        sample_binV = bin_y_over_x(sample_t, sample_V, bint)
+        ref_binV    = bin_y_over_x(   ref_t,    ref_V, bint)
+
+        # get Offsets
+        offset_sample, offset_reference, offset_time = self.get_offsets()
+
+        # TODO: Get Amps and reference resistance
+        amplification_sample = 1000
+        amplification_reference = 1000
+        reference_resistance = 47000
+
+        # get current and voltage
+        voltage = ( sample_binV - offset_sample ) / amplification_sample
+        current = ( ref_binV - offset_reference ) / amplification_reference / reference_resistance
 
         # get up and down sweeps
-        voltage_upsweep, voltage_downsweep = get_up_down_sweep(voltage, mins, maxs)
-        current_upsweep, current_downsweep = get_up_down_sweep(current, mins, maxs)
-
-        sample_upsweep_t, sample_downsweep_t = get_up_down_sweep(sample_t, mins, maxs)
-        ref_upsweep_t, ref_downsweep_t = get_up_down_sweep(ref_t, mins, maxs)
+        mins, maxs = get_min_max(bint, tmins, tmaxs)
+        voltage_up, voltage_down = get_up_down_sweeps(voltage, mins, maxs)
+        current_up, current_down = get_up_down_sweeps(current, mins, maxs)  
 
         # get binned voltage and currents
         ## get binned voltage
-        if bin_min==0:
-            bin_min = np.max([np.nanmin(voltage_downsweep), np.nanmin(voltage_upsweep)])
-        if bin_max==0:
-            bin_max = np.min([np.nanmax(voltage_downsweep), np.nanmax(voltage_upsweep)])
-        if bin_points==0:
-            bin_points = sweep_counts / frequency * 500
-            # sampling rate / 2 weil up and down
-        binned_voltage = np.linspace(bin_min, bin_max, int(bin_points))
+        bin_volt = np.linspace(
+            self._bin_start, 
+            self._bin_stop,
+            int(self._bin_points)
+            )
 
         ## get binned currents
-        binned_current_downsweep = get_binned_current(voltage_downsweep, current_downsweep, binned_voltage)
-        binned_current_upsweep = get_binned_current(voltage_upsweep, current_upsweep, binned_voltage)
+        bin_curr_up   = bin_y_over_x(voltage_up, current_up, bin_volt)
+        bin_curr_down = bin_y_over_x(voltage_down, current_down, bin_volt)
 
+        # TODO Get dGs
+
+        # save sweeps
+        my_dict_sweep = {
+                'time': tic,
+                'current_upsweep': bin_curr_up,
+                'current_downsweep': bin_curr_down,
+                }
+        
+        path = f"{self._hdf5_path}/{self._name}/{self._sweeps_name}"
+        self.dgw.append(path, 
+                    my_dict_sweep, 
+                    x_axis = 'V [V]',
+                    start = self._bin_start,
+                    stop = self._bin_stop,
+                    points = self._bin_points,
+                    delay_time = self._delay_time,
+                    amplitude = self._amplitude,
+                    frequency = self._frequency,
+                    sweep_counts = self._sweep_counts,
+                    max_current = self._max_current,
+                    plot_config = "lnspc")
+        
         # get resistances
+        ## remove nan's
+        _logic_C_up = ~np.isnan(bin_curr_up)
+        bin_volt_up_nnan = bin_volt[_logic_C_up]
+        bin_curr_up_nnan = bin_curr_up[_logic_C_up]
+
+        _logic_C_down = ~np.isnan(bin_curr_down)
+        bin_volt_down_nnan = bin_volt[_logic_C_down]
+        bin_curr_down_nnan = bin_curr_down[_logic_C_down]
+
+        volt_nann = np.append(bin_volt_up_nnan, bin_volt_down_nnan)
+        curr_nann = np.append(bin_curr_up_nnan, bin_curr_down_nnan)
+
+        ## get R_ptp, R_rms, R_lin
+        R_ptp = calc_ptp(volt_nann, curr_nann)
+        R_rms = calc_rms(volt_nann, curr_nann)
+        R_lin, I_0_1, I_0_2 = calc_lin(volt_nann, curr_nann)
+
+        # save resistances   
+        my_dict_resistance = {
+            'time': tic,
+            'R_ptp': R_ptp,
+            'R_rms': R_rms,
+            'R_lin': R_lin,
+            'I_0_1': I_0_1,
+            'I_0_2': I_0_2,
+            'offset_time': offset_time,
+            }
+
+        path = f"{self._hdf5_path}/{self._name}/{self._resistance_name}"
+        self.dgw.append(
+            path,
+            my_dict_resistance,
+            delay_time = self._delay_time,
+            max_current = self._max_current,
+            amplitude = self._amplitude,
+            frequency = self._frequency,
+            sweep_counts = self._sweep_counts,
+            bin_start = self._bin_start,
+            bin_stop = self._bin_stop,
+            bin_points = self._bin_points,
+        )
+
+"""
+# get resistances
         ## exclude gap data
-        _logic_binned = (np.abs(binned_voltage) <= exclusion_voltage)
+        _logic_bin = (np.abs(bin_volt) <= self._excl_volt)
 
-        binned_voltage_excluded = binned_voltage
-        binned_current_upsweep_excluded = binned_current_upsweep
-        binned_current_downsweep_excluded = binned_current_downsweep
+        bin_volt_excl = np.copy(bin_volt)
+        bin_volt_excl[_logic_bin] = np.nan
 
-        binned_voltage_excluded[_logic_binned] = np.nan
-        binned_current_upsweep_excluded[_logic_binned] = np.nan
-        binned_current_downsweep_excluded[_logic_binned] = np.nan
+        bin_curr_up_excl = np.copy(bin_curr_up)
+        bin_curr_up_excl[_logic_bin] = np.nan
+
+        bin_curr_down_excl = np.copy(bin_curr_down)
+        bin_curr_down_excl[_logic_bin] = np.nan
 
         ## get from min and max
-        min_binned_voltage_excluded = np.nanmin(binned_voltage_excluded)
-        max_binned_voltage_excluded = np.nanmax(binned_voltage_excluded)
-        min_binned_current_excluded = np.nanmin([np.nanmin(binned_current_upsweep_excluded),
-                                                np.nanmin(binned_current_downsweep_excluded)])
-        max_binned_current_excluded = np.nanmax([np.nanmax(binned_current_upsweep_excluded),
-                                                np.nanmax(binned_current_downsweep_excluded)])
-        R_max = ( max_binned_voltage_excluded - min_binned_voltage_excluded ) / (
-                max_binned_current_excluded - min_binned_current_excluded )
+        min_bin_volt_excl = np.nanmin(bin_volt_excl)
+        max_bin_volt_excl = np.nanmax(bin_volt_excl)
+
+        min_bin_curr_excl = np.nanmin([np.nanmin(bin_curr_up_excl),
+                                       np.nanmin(bin_curr_down_excl)])
+
+        max_bin_curr_excl = np.nanmax([np.nanmax(bin_curr_up_excl),
+                                       np.nanmax(bin_curr_down_excl)])
+
+        R_max = np.abs( max_bin_volt_excl - min_bin_volt_excl ) / np.abs(
+                max_bin_curr_excl - min_bin_curr_excl )
 
         ## get from rms
-        rms_binned_voltage_excluded = calc_rms(binned_voltage_excluded)
-        rms_binned_current_excluded = calc_rms(np.append(binned_current_upsweep_excluded,
-                                                        binned_current_downsweep_excluded))
-        R_rms = rms_binned_voltage_excluded / rms_binned_current_excluded
+        rms_bin_volt_excl = calc_rms(bin_volt_excl)
+        rms_bin_curr_excl = calc_rms(np.append(bin_curr_up_excl, bin_curr_down_excl))
+        R_rms = rms_bin_volt_excl / rms_bin_curr_excl
 
         ## get from lin fit
         ### remove nans
-        _logic = ~np.isnan(binned_voltage_excluded)
-        binned_voltage_excluded_without_nan = binned_voltage_excluded[_logic]
-        binned_current_upsweep_excluded_without_nan = binned_current_upsweep_excluded[_logic]
-        binned_current_downsweep_excluded_without_nan = binned_current_downsweep_excluded[_logic]
+        _logic = ~np.isnan(bin_volt_excl)
+        bin_volt_excl_xnan = bin_volt_excl[_logic]
+        bin_curr_up_excl_xnan = bin_curr_up_excl[_logic]
+        bin_curr_down_excl_xnan = bin_curr_down_excl[_logic]
 
-        _logic_C1 = ~np.isnan(binned_current_upsweep_excluded_without_nan)
-        binned_voltage_upsweep_excluded_without_nan = binned_voltage_excluded_without_nan[_logic_C1]
-        binned_current_upsweep_excluded_without_nan = binned_current_upsweep_excluded_without_nan[_logic_C1]
+        _logic_C_up = ~np.isnan(bin_curr_up_excl_xnan)
+        bin_volt_up_excl_xnan = bin_volt_excl_xnan[_logic_C_up]
+        bin_curr_up_excl_xnan = bin_curr_up_excl_xnan[_logic_C_up]
 
-        _logic_C2 = ~np.isnan(binned_current_downsweep_excluded_without_nan)
-        binned_voltage_downsweep_excluded_without_nan = binned_voltage_excluded_without_nan[_logic_C2]
-        binned_current_downsweep_excluded_without_nan = binned_current_downsweep_excluded_without_nan[_logic_C2]
-
-        ### combined arrays
-        _voltages_to_fit = np.append(binned_voltage_upsweep_excluded_without_nan,
-                                    binned_voltage_downsweep_excluded_without_nan)
-        
-        _currents_to_fit = np.append(binned_current_upsweep_excluded_without_nan,
-                                    binned_current_downsweep_excluded_without_nan)
+        _logic_C_down = ~np.isnan(bin_curr_down_excl_xnan)
+        bin_volt_down_excl_xnan = bin_volt_excl_xnan[_logic_C_down]
+        bin_curr_down_excl_xnan = bin_curr_down_excl_xnan[_logic_C_down]
 
         ### get R from combined fit
-        [R_lin, I_0_1, I_0_2], _ = curve_fit(combined_lin_fit, 
-                                            _voltages_to_fit,
-                                            _currents_to_fit)
+        try:
+            [R_lin, I_0_1, I_0_2], _ = curve_fit(combined_lin_fit, 
+                                                np.append(bin_volt_up_excl_xnan,
+                                                        bin_volt_down_excl_xnan),
+                                                np.append(bin_curr_up_excl_xnan,
+                                                        bin_curr_down_excl_xnan))
+        except ValueError:
+            [R_lin, I_0_1, I_0_2] = [np.nan, np.nan, np.nan]
 
-        # save to data gateway (TODO)
-        path = f"{parental_name}/{hdf5_path}/{name}"
+        # save resistances   
+        my_dict_resistance = {'time': tic,
+                            'R_max': R_max,
+                            'R_rms': R_rms,
+                            'R_lin': R_lin,
+                            'I_0_1': I_0_1,
+                            'I_0_2': I_0_2,
+                            }
 
-        ## save resistances   
-        my_dict = {'time': tic,
-                'R_max': R_max,
-                'R_rms': R_rms,
-                'R_lin': R_lin,
-                'I_0_1': I_0_1,
-                'I_0_2': I_0_2,
-                }
+        path = f"{self._hdf5_path}/{self._name}/{self._resistance_name}"
         self.dgw.append(
-            f"{path}/resistances",
-            my_dict,
-            test_keyword = 'test'
+            path,
+            my_dict_resistance,
+            delay_time = self._delay_time,
+            amplitude = self._amplitude,
+            frequency = self._frequency,
+            sweep_counts = self._sweep_counts,
+            max_current = self._max_current,
+            exclusion_voltage = self._excl_volt,
+            bin_start = self._bin_start,
+            bin_stop = self._bin_stop,
+            bin_points = self._bin_points,
         )
-
-
-
-
-# probably class?
-from time import sleep, time
-from numpy import mean, std
-
-
-# Pre - Definitions
-def get_dataset(dgw, tic, toc, multi_keyword, hdf5_path='m000000'):
-    # TODO slices
-    multi = dgw.get_data(f"/measurement/{hdf5_path}/multi_{multi_keyword}/")
-    time, V = multi['time'], multi['V']
-    indices = np.argmin(np.abs(time-tic)), np.argmin(np.abs(time-toc))
-    return time[indices[0]:indices[1]], V[indices[0]:indices[1]]
-
-# Definition of the Offset Measurement Function
-def offset_measurement(gw, dgw, 
-                        hdf5_path='m000000', parental_name='meta_data', name='offsets',
-                        _delay_time = .1, mean_fetch_time = .7,
-                        offset_time = 1, max_current = .1):
-
-    # setup bias_source to CV 0V output
-    # TODO: if not setupped and not busy
-    gw.source_bias.setup_offset_measurement(max_current=max_current)
-
-    # wait for measurement
-    if _delay_time != 0:
-        sleep(_delay_time)
-    tic = time()
-    toc = tic + offset_time
-    sleep(offset_time+mean_fetch_time)
-
-    # get data from dgw
-    ref_t, ref_V = get_dataset(dgw, tic, toc, multi_keyword='reference', hdf5_path=hdf5_path)
-    sample_t, sample_V = get_dataset(dgw, tic, toc, multi_keyword='sample', hdf5_path=hdf5_path)
-    source_t, source_V = get_dataset(dgw, tic, toc, multi_keyword='source', hdf5_path=hdf5_path)
-
-    # get calculations done
-    offset_source = mean(source_V)
-    offset_sample = mean(sample_V)
-    offset_ref = mean(ref_V)
-
-    std_source = std(source_V)
-    std_sample = std(sample_V)
-    std_ref = std(ref_V)
-
-    # save to data gateway
-    path = f"{parental_name}/{hdf5_path}/{name}"
-
-    my_dict = {'time': tic,
-               'offset_source': offset_source,
-               'offset_sample':offset_sample,
-               'offset_ref': offset_ref,
-               'std_source': std_source,
-               'std_sample': std_sample,
-               'std_ref': std_ref
-            }
-
-    dgw.append(
-        path,
-        my_dict,
-        _delay_time = _delay_time,
-        mean_fetch_time = mean_fetch_time,
-        offset_time = offset_time,
-        max_current = max_current
-    )
-
-
-'''
-
-
-'''from time import sleep, time
-from scipy.signal import savgol_filter as sg
-from scipy.signal import find_peaks as fp
-from scipy.optimize import curve_fit
-import numpy as np
-
-
-# Pre - Definitions
-
-def get_dataset(dgw, tic, toc, multi_keyword, hdf5_path='m000000'):
-    # TODO slices
-    multi = dgw.get_data(f"/measurement/{hdf5_path}/multi_{multi_keyword}/")
-    time, V = multi['time'], multi['V']
-    indices = np.argmin(np.abs(time-tic)), np.argmin(np.abs(time-toc))
-    return time[indices[0]:indices[1]], V[indices[0]:indices[1]]
-
-def get_min_max_peaks(V, t, frequency, sweep_counts):
-    window_length = int(10/frequency)
-    smooth_V = sg(V, window_length=window_length, polyorder=1)
-    dV = np.gradient(smooth_V)
-    smooth_dV = sg(dV, window_length=window_length, polyorder=1)
-    ddV = np.gradient(smooth_dV)
-    smooth_ddV = sg(ddV, window_length=window_length, polyorder=1)
-
-    symmetrical_ddV = smooth_ddV - np.mean(smooth_ddV)
-
-    min_peaks = fp(symmetrical_ddV, height=.25*np.nanmax(symmetrical_ddV), distance=2*window_length)[0]
-    max_peaks = fp(-symmetrical_ddV, height=.25*np.nanmax(symmetrical_ddV), distance=2*window_length)[0]
-
-    if len(min_peaks) == len(max_peaks):
-        min_peaks = np.append(min_peaks, [-1])
-    return min_peaks, max_peaks
-
-def get_up_down_sweep(array, mins, maxs):
-    up = np.array([])
-    down = np.array([])
-    for i, p in enumerate(maxs):
-        up = np.append(up, array[mins[i]:p])
-        down = np.append(down, array[p:mins[i+1]])
-    return up, down
-
-def get_binned_current(voltage, current, bins):
-    bins = np.append(bins, 2 * bins[-1] - bins[-2])
-    _count, _ = np.histogram(voltage,
-                            bins = bins,
-                            weights=None)
-    _count = np.array(_count, dtype='float64')
-    _count[_count==0] = np.nan
-    _sum, _ = np.histogram(voltage,
-                        bins =bins,
-                        weights=current)
-    return _sum/_count
-
-def calc_rms(x):
-    return np.sqrt(np.nanmean(np.abs(x)**2))
-    
-def lin_fit_1(V, R, I_0_1, I_0_2):
-        return V / R + I_0_1
-
-def lin_fit_2(V, R, I_0_1, I_0_2):
-        return V / R + I_0_2
-
-def combined_lin_fit(VV, R, I_0_1, I_0_2):
-    # single data reference passed in, extract separate data
-    # assumes biggest jump in voltage to be dividing index
-    index = np.argmax(VV[:-1]-VV[1:])
-    res1 = lin_fit_1(VV[:index], R, I_0_1, I_0_2)
-    res2 = lin_fit_2(VV[index:], R, I_0_1, I_0_2)
-    return np.append(res1, res2)
-
-
-
-# Definition of the Offset Measurement Function
-
-def sweep_measurement(gw, dgw, 
-                        hdf5_path='m000000', parental_name='meta', name='sweeps',
-                        _delay_time = .1, mean_fetch_time = .7,
-                        amplitude = .3, frequency = 1, 
-                        sweep_counts = 10, max_current = .3,
-                        amplification_sample = 100,
-                        amplification_reference = 100,
-                        reference_resistance = 4.7E4,
-                        bin_min=0, bin_max=0, bin_points=0,
-                        exclusion_voltage=3.4E-4*5):
-    
-    # TODO
-        # setup just if not setup and busy
-        # divide in measurement and calc
-            # measurement is opt. setup + performing
-            # calculation is rest
-        # make _save_data
-        # get stuff from femto
-        # get ref resistance from somewhere
-
-
-
-    # setup bias_source to sweep mode
-    # TODO: if not setupped and busy
-    gw.source_bias.setup_sweep_measurement(amplitude = amplitude,
-                                            frequency = frequency,
-                                            sweep_counts = sweep_counts, 
-                                            max_current = max_current)
-
-    # wait for measurement
-    if _delay_time != 0:
-        sleep(_delay_time)
-    gw.source_bias.trigger_measurment()
-    tic = time()
-    tic = tic - _delay_time
-    toc = tic + sweep_counts / frequency + 2 * _delay_time
-    sleep(sweep_counts / frequency + mean_fetch_time)
-
-    # get data from dgw
-    ref_t, ref_V = get_dataset(dgw, tic, toc, multi_keyword='reference', hdf5_path=hdf5_path)
-    sample_t, sample_V = get_dataset(dgw, tic, toc, multi_keyword='sample', hdf5_path=hdf5_path)
-    source_t, source_V = get_dataset(dgw, tic, toc, multi_keyword='source', hdf5_path=hdf5_path)
-
-    print(len(ref_t), len(sample_t), len(source_t))
-    # while not "same" ask again
-
-    # get Offsets
-    offset_sample = 0
-    offset_reference = 0
-
-    # get current and voltage
-    voltage = ( sample_V - offset_sample ) / amplification_sample
-    current = ( ref_V - offset_reference ) / amplification_reference / reference_resistance
-
-    # get min und max peak indices
-    mins, maxs = get_min_max_peaks(source_V, source_t, frequency, sweep_counts)
-
-    # get up and down sweeps
-    voltage_upsweep, voltage_downsweep = get_up_down_sweep(voltage, mins, maxs)
-    current_upsweep, current_downsweep = get_up_down_sweep(current, mins, maxs)
-
-    sample_upsweep_t, sample_downsweep_t = get_up_down_sweep(sample_t, mins, maxs)
-    ref_upsweep_t, ref_downsweep_t = get_up_down_sweep(ref_t, mins, maxs)
-
-    # get binned voltage and currents
-    ## get binned voltage
-    if bin_min==0:
-        bin_min = np.max([np.nanmin(voltage_downsweep), np.nanmin(voltage_upsweep)])
-    if bin_max==0:
-        bin_max = np.min([np.nanmax(voltage_downsweep), np.nanmax(voltage_upsweep)])
-    if bin_points==0:
-        bin_points = sweep_counts / frequency * 500
-        # sampling rate / 2 weil up and down
-    binned_voltage = np.linspace(bin_min, bin_max, int(bin_points))
-
-    print(np.shape(voltage_downsweep), np.shape(current_downsweep))
-    ## get binned currents
-    binned_current_downsweep = get_binned_current(voltage_downsweep, current_downsweep, binned_voltage)
-    binned_current_upsweep = get_binned_current(voltage_upsweep, current_upsweep, binned_voltage)
-
-    # get resistances
-    ## exclude gap data
-    _logic_binned = (np.abs(binned_voltage) <= exclusion_voltage)
-
-    binned_voltage_excluded = binned_voltage
-    binned_current_upsweep_excluded = binned_current_upsweep
-    binned_current_downsweep_excluded = binned_current_downsweep
-
-    binned_voltage_excluded[_logic_binned] = np.nan
-    binned_current_upsweep_excluded[_logic_binned] = np.nan
-    binned_current_downsweep_excluded[_logic_binned] = np.nan
-
-    ## get from min and max
-    min_binned_voltage_excluded = np.nanmin(binned_voltage_excluded)
-    max_binned_voltage_excluded = np.nanmax(binned_voltage_excluded)
-    min_binned_current_excluded = np.nanmin([np.nanmin(binned_current_upsweep_excluded),
-                                             np.nanmin(binned_current_downsweep_excluded)])
-    max_binned_current_excluded = np.nanmax([np.nanmax(binned_current_upsweep_excluded),
-                                             np.nanmax(binned_current_downsweep_excluded)])
-    R_max = ( max_binned_voltage_excluded - min_binned_voltage_excluded ) / (
-              max_binned_current_excluded - min_binned_current_excluded )
-
-    ## get from rms
-    rms_binned_voltage_excluded = calc_rms(binned_voltage_excluded)
-    rms_binned_current_excluded = calc_rms(np.append(binned_current_upsweep_excluded,
-                                                     binned_current_downsweep_excluded))
-    R_rms = rms_binned_voltage_excluded / rms_binned_current_excluded
-
-    ## get from lin fit
-    ### remove nans
-    _logic = ~np.isnan(binned_voltage_excluded)
-    binned_voltage_excluded_without_nan = binned_voltage_excluded[_logic]
-    binned_current_upsweep_excluded_without_nan = binned_current_upsweep_excluded[_logic]
-    binned_current_downsweep_excluded_without_nan = binned_current_downsweep_excluded[_logic]
-
-    _logic_C1 = ~np.isnan(binned_current_upsweep_excluded_without_nan)
-    binned_voltage_upsweep_excluded_without_nan = binned_voltage_excluded_without_nan[_logic_C1]
-    binned_current_upsweep_excluded_without_nan = binned_current_upsweep_excluded_without_nan[_logic_C1]
-
-    _logic_C2 = ~np.isnan(binned_current_downsweep_excluded_without_nan)
-    binned_voltage_downsweep_excluded_without_nan = binned_voltage_excluded_without_nan[_logic_C2]
-    binned_current_downsweep_excluded_without_nan = binned_current_downsweep_excluded_without_nan[_logic_C2]
-
-    ### combined arrays
-    _voltages_to_fit = np.append(binned_voltage_upsweep_excluded_without_nan,
-                                 binned_voltage_downsweep_excluded_without_nan)
-    
-    _currents_to_fit = np.append(binned_current_upsweep_excluded_without_nan,
-                                 binned_current_downsweep_excluded_without_nan)
-
-    ### get R from combined fit
-    [R_lin, I_0_1, I_0_2], _ = curve_fit(combined_lin_fit, 
-                                        _voltages_to_fit,
-                                        _currents_to_fit)
-
-    # save to data gateway (TODO)
-    path = f"{parental_name}/{hdf5_path}/{name}"
-
-    ## save resistances   
-    my_dict = {'time': tic,
-               'R_max': R_max,
-               'R_rms': R_rms,
-               'R_lin': R_lin,
-               'I_0_1': I_0_1,
-               'I_0_2': I_0_2,
-            }
-    dgw.append(
-        f"{path}/resistances",
-        my_dict,
-        test_keyword = 'test'
-    )
-
-
-    # Arrays
-    
-    # Single Values
-
-    # keywords
-        # _delay_time = _delay_time,
-        # mean_fetch_time = mean_fetch_time,
-        # amplitude = amplitude,
-        # frequency = frequency,
-        # sweep_counts = sweep_counts,
-        # max_current = max_current,
-        # amplification_sample=amplification_sample,
-        # amplification_reference=amplification_reference,
-        # reference_resistance = reference_resistance,
-        # voltage_bin_min = bin_min,
-        # voltage_bin_max = bin_max,
-        # voltage_bin_points = bin_points,
-        # exclusion_voltage = exclusion_voltage,
-
-    # dgw.append(
-    #     path,
-    #     my_dict,
-    #     test='test'
-    # )
-
-'''
+"""
+        
