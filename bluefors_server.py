@@ -14,12 +14,13 @@ from p5control import InstrumentServer, drivers, inserv_cli
 inserv = InstrumentServer()
 
 
-inserv._add('inst1', drivers.ExampleInst)
-inserv._add('inst2', drivers.ExampleInst)
+#inserv._add('inst1', drivers.ExampleInst)
+#inserv._add('inst2', drivers.ExampleInst)
 inserv._add('bf', drivers.BlueForsAPI)
 # inserv._add('magnet')
 inserv._add('vna', drivers.ZNB40, '192.168.1.104')
 # inserv._add('thermo', drivers.GIR2002, 'ASRL1::INSTR')
+# inserv._add('multi_sourcer', drivers.Keysight34461A, 'TCPIP0::192.168.1.108::INSTR')
 inserv._add('multi_source', drivers.Keysight34461A, 'TCPIP0::192.168.1.109::INSTR')
 inserv._add('multi_sample', drivers.Keysight34461A, 'TCPIP0::192.168.1.110::INSTR')
 inserv._add('multi_reference', drivers.Keysight34461A, 'TCPIP0::192.168.1.111::INSTR')
