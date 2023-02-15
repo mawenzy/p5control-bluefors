@@ -6,7 +6,7 @@ dserv = DataServer(filename="testsweeps.hdf5")
 
 dserv.start()
 
-def close(_):
+def close(*args):
     dserv.stop()
 
 signal.signal(signal.SIGINT, close)
