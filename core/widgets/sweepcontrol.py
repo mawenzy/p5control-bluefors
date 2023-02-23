@@ -7,11 +7,10 @@ from pyqtgraph import SpinBox
 
 from p5control import InstrumentGateway
 from p5control.gui.widgets.measurementcontrol import StatusIndicator, PlayPauseButton
-
-from p5control.gui import MonitorValueBox
+from p5control.gui import MonitorValueBox, run_async
 from qtpy.QtWidgets import QSpinBox, QDoubleSpinBox, QAbstractSpinBox
 
-from ..scripts import Offsets, Sweeps
+from ..scripts import Sweeper
 
 class OffsetControl(QWidget):
     """
@@ -27,7 +26,7 @@ class OffsetControl(QWidget):
 
         self.gw = gw
 
-        self.offsets = Offsets()
+        self.offsets = Sweeper()
 
         # widgets
         self.status_indicator = StatusIndicator()
@@ -37,7 +36,6 @@ class OffsetControl(QWidget):
         # signals
         self.btn.changed.connect(self._handle_btn_change)
         self.btn.changed.connect(self.status_indicator.set_state)
-        self.offsets.finished.connect(lambda: self.btn.set_playing(False))
 
         # layout
         row1_lay = QHBoxLayout()
@@ -61,16 +59,19 @@ class OffsetControl(QWidget):
             self.btn.setEnabled(False)
             self.offset_time.setEnabled(False)
 
-            self.offsets._offset_time = self.offset_time.value()
-
-            measure = self.gw.measure()
-            self.offsets._hdf5_path = measure.path()
-
             # this runs the measurement, does not block
-            self.offsets.start()
+            run_async(self.run_offsets, self, callback = lambda: self.btn.set_playing(False))
         else:
             self.btn.setEnabled(True)
             self.offset_time.setEnabled(True)
+    
+    def run_offsets(self):
+        self.offsets._offset_time = self.offset_time.value()
+
+        measure = self.gw.measure()
+        self.offsets._hdf5_path = measure.path
+
+        self.offsets.get_offsets()
 
 
 
@@ -88,26 +89,19 @@ class SweepControl(QWidget):
 
         self.gw = gw
 
-        self.sweep = Sweeps()
+        self.sweep = Sweeper()
 
         # widgets
         self.status_indicator = StatusIndicator()
         self.btn = PlayPauseButton()
 
-        self.sweep_ampl = SpinBox(value=self.sweep._amplitude, siPrefix=True, bounds=[0, 5], dec=True, step=1, minStep=0.001)
+        self.sweep_ampl = SpinBox(value=self.sweep._amplitude, siPrefix=True, bounds=[0, 10], dec=True, step=1, minStep=0.001)
         self.sweep_freq = SpinBox(value=self.sweep._frequency, siPrefix=True, bounds=[0, 5], dec=True, step=1, minStep=0.001)
         self.sweep_count = SpinBox(value=self.sweep._sweep_counts, bounds=[0, 1000], int=True)
-        # self.sweep_freq = QDoubleSpinBox()
-        # self.sweep_freq.setMaximum(5)
-        # self.sweep_freq.setMinimum(0)
-        # self.sweep_freq.setDecimals(3)
-        # self.sweep_freq.setAlignment(Qt.AlignRight)
-        # self.sweep_freq.setValue(self.sweep._frequency)
 
         # signals
         self.btn.changed.connect(self.status_indicator.set_state)
         self.btn.changed.connect(self._handle_btn_change)
-        self.sweep.finished.connect(lambda: self.btn.set_playing(False))
 
         # layout
         row1_lay = QHBoxLayout()
@@ -134,19 +128,8 @@ class SweepControl(QWidget):
             self.sweep_ampl.setEnabled(False)
             self.sweep_count.setEnabled(False)
 
-            freq = self.sweep_freq.value()
-            ampl = self.sweep_ampl.value()
-            count = self.sweep_count.value()
-
-            self.sweep._frequency = freq
-            self.sweep._amplitude = ampl
-            self.sweep._sweep_counts = count
-
-            measure = self.gw.measure()
-            self.sweep._hdf5_path = measure.path()
-
             # this runs the measurement, does not block
-            self.sweep.start()
+            run_async(self.run_sweeps, self, callback = lambda: self.btn.set_playing(False))
 
         else:
             self.btn.setEnabled(True)
@@ -154,3 +137,12 @@ class SweepControl(QWidget):
             self.sweep_ampl.setEnabled(True)
             self.sweep_count.setEnabled(True)
 
+    def run_sweeps(self):
+        self.sweep._frequency = self.sweep_freq.value()
+        self.sweep._amplitude = self.sweep_ampl.value()
+        self.sweep._sweep_counts = self.sweep_count.value()
+
+        measure = self.gw.measure()
+        self.sweep._hdf5_path = measure.path
+
+        self.sweep.get_sweeps()

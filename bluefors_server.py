@@ -11,12 +11,14 @@ logging.basicConfig(
 
 from p5control import InstrumentServer, drivers, inserv_cli
 
+# inserv = InstrumentServer()
 inserv = InstrumentServer()
 
 
 #inserv._add('inst1', drivers.ExampleInst)
 #inserv._add('inst2', drivers.ExampleInst)
 inserv._add('bf', drivers.BlueForsAPI)
+inserv._add('adwin', drivers.ADwinGold2)
 # inserv._add('magnet')
 inserv._add('vna', drivers.ZNB40, '192.168.1.104')
 # inserv._add('thermo', drivers.GIR2002, 'ASRL1::INSTR')

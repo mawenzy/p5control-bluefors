@@ -1,5 +1,4 @@
 import numpy as np
-import matplotlib.pyplot as plt
 
 def magic1_ind(time, V, count, freq):
     """

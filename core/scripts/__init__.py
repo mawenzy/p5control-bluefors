@@ -1,1 +1,1 @@
-from .sweeps import Offsets, Sweeps
+from .sweeps import Sweeper

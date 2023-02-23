@@ -33,7 +33,7 @@ from p5control.gui import (
     MeasurementControl
 )
 
-from core.widgets import OffsetControl, SweepControl, SweeperControl
+from core.widgets import SweeperControl
 
 import core.plot
 
@@ -106,6 +106,8 @@ class Scheer2MainWindow(QMainWindow):
 
         self.form_view = ValueBoxForm(dgw, [
             ('sweep<sub>ampl</sub>', '/status/sweep', "sweep_ampl", None),
+            ('adwin<sub>avg</sub>', '/status/adwin', "averaging", gw.adwin.setAveraging),
+            ('adwin<sub>ch1</sub>', '/status/adwin', "range_ch1", lambda range: gw.adwin.setRange(range, ch=1)),
             # ('inst1<sub>ampl</sub>', '/status/inst1', "ampl", gw.inst1.setAmplitude),
             # ('inst1<sub>freq</sub>', '/status/inst1', "freq", gw.inst1.setFrequency),
             # ('inst2<sub>ampl</sub>', '/status/inst2', "ampl", gw.inst2.setAmplitude)
@@ -114,8 +116,6 @@ class Scheer2MainWindow(QMainWindow):
         self.plot_form = PlotForm(self.dgw)
 
         self.measurement_control = MeasurementControl(self.gw)
-        self.offset_control = OffsetControl(self.gw)
-        self.sweep_control = SweepControl(self.gw)
         self.sweeper_control = SweeperControl(self.gw)
 
         self.tabs = PlotTabWidget(self.dgw, plot_form=self.plot_form)
@@ -144,23 +144,13 @@ class Scheer2MainWindow(QMainWindow):
         self.measurement_control_dock.setMinimumWidth(MIN_DOCK_WIDTH)
         self.measurement_control_dock.setWidget(self.measurement_control)
 
-        self.offset_control_dock = QDockWidget('Offset control', self)
-        self.offset_control_dock.setMinimumWidth(MIN_DOCK_WIDTH)
-        self.offset_control_dock.setWidget(self.offset_control)
-
-        self.sweep_control_dock = QDockWidget('Sweep control', self)
-        self.sweep_control_dock.setMinimumWidth(MIN_DOCK_WIDTH)
-        self.sweep_control_dock.setWidget(self.sweep_control)
-
-        self.sweeper_control_dock = QDockWidget('Sweep control', self)
+        self.sweeper_control_dock = QDockWidget('Sweeper control', self)
         self.sweeper_control_dock.setMinimumWidth(MIN_DOCK_WIDTH)
         self.sweeper_control_dock.setWidget(self.sweeper_control)
 
         # add dock widgets
         self.addDockWidget(Qt.LeftDockWidgetArea, self.tree_dock)
         self.addDockWidget(Qt.RightDockWidgetArea, self.measurement_control_dock)
-        self.addDockWidget(Qt.RightDockWidgetArea, self.offset_control_dock)
-        self.addDockWidget(Qt.RightDockWidgetArea, self.sweep_control_dock)
         self.addDockWidget(Qt.RightDockWidgetArea, self.sweeper_control_dock)
         self.addDockWidget(Qt.RightDockWidgetArea, self.form_dock)
         self.addDockWidget(Qt.RightDockWidgetArea, self.plot_form_dock)
@@ -168,8 +158,6 @@ class Scheer2MainWindow(QMainWindow):
         self.view_menu.addActions([
             self.tree_dock.toggleViewAction(),
             self.measurement_control_dock.toggleViewAction(),
-            self.offset_control_dock.toggleViewAction(),
-            self.sweep_control_dock.toggleViewAction(),
             self.sweeper_control_dock.toggleViewAction(),
             self.form_dock.toggleViewAction(),
             self.plot_form_dock.toggleViewAction()

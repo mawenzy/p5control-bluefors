@@ -25,16 +25,15 @@ class LnSpcPlotConfig(BasePlotConfig):
         ndim = node.shape
 
         self._config["data"] = dgw.get_data(path)
-        self._config["attrs"] = node.attrs
         self._config["x_data"] = np.linspace(
-                                    float(self._config["attrs"]["start"]),
-                                    float(self._config["attrs"]["stop"]),
-                                    int(self._config["attrs"]["points"]),
+                                    float(node.attrs["start"]),
+                                    float(node.attrs["stop"]),
+                                    int(node.attrs["points"]),
                                     dtype = 'float64'
                                 )
 
         # set defaults for x and y indexing
-        self._config["x"] = self._config["attrs"]["x_axis"]
+        self._config["x"] = node.attrs["x_axis"]
         self._config["y"] = compound_names[1]
 
         self.callid = self.dgw.register_callback(path, self.callback)
