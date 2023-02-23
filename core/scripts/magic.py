@@ -47,14 +47,13 @@ def magic1(time, V, count, freq):
 
 def magic2(time, V, count, freq):
     """
-    Takes the indices from magic1_ind and improves them by using fits
+    Takes the indices from magic1_ind and improves them by using fits, returns the corresponding
+    time, which are not contained in time!!
     """
     bounds, minima, maxima = magic1_ind(time, V, count, freq)
 
     ind_soup = [0] + bounds + minima + maxima + [len(V)]
     ind_soup.sort()
-
-    print(ind_soup)
 
     bounds, maxima, minima = [], [], []
 
@@ -70,16 +69,23 @@ def magic2(time, V, count, freq):
 
         times = np.reshape(time[slice1], (len(time[slice1]),))
         vs = np.reshape(V[slice1], (len(V[slice1]),))
+        fit1 = np.polynomial.Polynomial.fit(times, vs, deg=1).convert().coef
+        
+        times = np.reshape(time[slice2], (len(time[slice2]),))
+        vs = np.reshape(V[slice2], (len(V[slice2]),))
+        fit2 = np.polynomial.Polynomial.fit(times, vs, deg=1).convert().coef
 
-        fit1 = np.polynomial.Polynomial.fit(times, vs, deg=1)
+        intersect = (fit1[0] - fit2[0]) / (fit2[1] - fit1[1])
 
-        print(fit1)
-
-        plt.plot(time[slice1], V[slice1])
-        plt.plot(time[slice2], V[slice2])
-
-        plt.show()
-
-
+        if i == 0:
+            bounds.append(intersect)
+        elif i == len(ind_soup) - 3:
+            bounds.append(intersect)
+        elif i % 2 == 0:
+            minima.append(intersect)
+        else:
+            maxima.append(intersect)
 
         i += 1
+
+    return bounds, minima, maxima
