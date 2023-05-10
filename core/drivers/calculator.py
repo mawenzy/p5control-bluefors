@@ -35,10 +35,12 @@ def calc_rms(V, I):
     return R_rms
 
 def calc_lin(V, I):
-    ind=np.argsort(V)
-    param = np.polyfit(V[ind], I[ind], 1)
-    R, I_0 = 1/param[0], param[1]
-    return R, I_0
+    try:
+        param = np.polyfit(V, I, 1)
+        R, I_0 = 1/param[0], param[1]
+        return R, I_0
+    except TypeError:
+        return np.nan, np.nan
         
 def bin_y_over_x(x, y, bins):
     bins = np.append(bins, 2 * bins[-1] - bins[-2])
@@ -63,11 +65,11 @@ class Calculator(BaseDriver):
 
     def __init__(self, name: str):
         self._name = name
+        self._delay_time = .1
 
         # all the names
-        self._adwin = 'addawin'
+        self._adwin = 'adwin'
         self._startstopname = 'startstop'
-        self._adwin_data = 'raw_data'
 
         self._temp = 'temp'
         self._offset = 'offsets'
@@ -77,8 +79,8 @@ class Calculator(BaseDriver):
         self._sweeps_up = 'sweeps_up'
         self._sweeps_down = 'sweeps_down'
 
+        self.running = False
         self.step_size = 100
-        self.running = True
         self.bin_start = -.001
         self.bin_stop = .001
         self.bin_points = 101
@@ -116,7 +118,7 @@ class Calculator(BaseDriver):
         if self.running:
             logger.debug('%s._save_data()', self._name)
             skipping = False
-            path = f"{hdf5_path}/{self._adwin}/{self._startstopname}"
+            path = f"{hdf5_path}/{self._name}/{self._startstopname}"
             save_path = f"{hdf5_path}/{self._name}/{self._temp}"
 
             try:
@@ -150,7 +152,7 @@ class Calculator(BaseDriver):
                             self.calc_cv(dgw, hdf5_path, start, stop)
                         # if case < -1 / undefined
                         else:
-                            raise ValueError('trigger state of addawin is undefined.')
+                            raise ValueError('trigger state of adwin is undefined.')
                         toc = time.time()
 
                         array['time'] = tic
@@ -161,6 +163,8 @@ class Calculator(BaseDriver):
                         array['data_points'] = int((stop-start) / self.step_size)
 
                         dgw.append(save_path, array, **kwargs)
+        else:
+            sleep(self._delay_time)
                     
     def retrieve_data(
             self,
@@ -169,19 +173,23 @@ class Calculator(BaseDriver):
             start,
             stop,
     ):
-        path = f"{hdf5_path}/{self._adwin}/{self._adwin_data}"
+        path = f"{hdf5_path}/{self._adwin}"
         # data = dgw.get_data(path, indices=range(start, stop, self.step_size))
         # V1 = data["V1"]
         # V2 = data["V2"]
         # t1 = data["time"][0]
         # t2 = data["time"][-1]
-        V1 = dgw.get_data(path, indices=range(start, stop, self.step_size), field='V1')
-        V2 = dgw.get_data(path, indices=range(start, stop, self.step_size), field='V2')
-        t1 = dgw.get_data(path, indices=start, field='time')
-        t2 = dgw.get_data(path, indices=stop,  field='time')
+        while True:
+            try:
+                V1 = dgw.get_data(path, indices=range(start, stop, self.step_size), field='V1')
+                V2 = dgw.get_data(path, indices=range(start, stop, self.step_size), field='V2')
+                t1 = dgw.get_data(path, indices=start, field='time')
+                t2 = dgw.get_data(path, indices=stop,  field='time')
 
-        t = ( t1 + t2 ) / 2
-        return t, V1, V2
+                t = ( t1 + t2 ) / 2
+                return t, V1, V2
+            except IndexError:
+                sleep(.1)
     
     def calc_off(
             self,
@@ -215,7 +223,7 @@ class Calculator(BaseDriver):
             data_off = dgw.get_data(path, indices=-2)
             V1_off = data_off['V1_off']
             V2_off = data_off['V2_off']
-        except KeyError:
+        except KeyError or IndexError:
             V1_off, V2_off = 0, 0
         return V1_off, V2_off
     
@@ -238,23 +246,30 @@ class Calculator(BaseDriver):
             stop,
     ):
         t, V1, V2 = self.retrieve_data(dgw, hdf5_path, start, stop)
+        print(f"mean: {np.mean(V1)}, {np.mean(V2)}")
         
         V1_off, V2_off = self.get_offsets(dgw, hdf5_path)
+        print(f"offset: {V1_off}, {V2_off}")
         V1_amp, V2_amp = self.get_amplifications()
         ref_R = self.get_resistance()
         
+        print(f"V-offset: {np.mean(V1)-V1_off}, {np.mean(V2)-V2_off}")
         voltage = ( V1 - V1_off ) / V1_amp
         current = ( V2 - V2_off ) / V2_amp / ref_R
+        print(f"voltage: {(np.mean(V1) - V1_off)}, current: {( np.mean(V2) - V2_off ) / ref_R}")
 
         mean_voltage = np.mean(voltage)
         mean_current = np.mean(current)
+        print(f"voltage: {mean_voltage}, current: {mean_current}")
         std_voltage = np.std(voltage)
         std_current = np.std(current)
         R_mean = np.abs(mean_voltage/mean_current)
+        
         uR_mean1 = np.abs(std_voltage / mean_current)
         uR_mean2 = np.abs(std_current * mean_voltage / mean_current**2)
         uR_mean = uR_mean1 + uR_mean2
 
+        print(f"resistance: {R_mean} ({uR_mean})")
         my_dict = {
             'time': t,
             'R_mean': R_mean,
@@ -352,3 +367,44 @@ class Calculator(BaseDriver):
 
     def get_data(self):
         return {}
+    
+    def setRunning(self, value:bool):
+        logger.debug('%s.setRunning()', self._name)
+        self.running = value
+
+    def getRunning(self):
+        logger.debug('%s.getRunning()', self._name)
+        return self.running
+    
+    def setStepSize(self, value:int):
+        logger.debug('%s.setStepSize()', self._name)
+        self.step_size = value
+
+    def getStepSize(self):
+        logger.debug('%s.getStepSize()', self._name)
+        return self.step_size
+    
+    def setBinStart(self, value:float):
+        logger.debug('%s.setBinStart()', self._name)
+        self.bin_start = value
+
+    def getBinStart(self):
+        logger.debug('%s.getBinStart()', self._name)
+        return self.bin_start
+    
+    def setBinStop(self, value:float):
+        logger.debug('%s.setBinStop()', self._name)
+        self.bin_stop = value
+
+    def getBinStop(self):
+        logger.debug('%s.getBinStop()', self._name)
+        return self.bin_stop
+        return self.bin_start
+    
+    def setBinPoints(self, value:int):
+        logger.debug('%s.setBinPoints()', self._name)
+        self.bin_points = value
+
+    def getBinPoints(self):
+        logger.debug('%s.getBinPoints()', self._name)
+        return self.bin_points
