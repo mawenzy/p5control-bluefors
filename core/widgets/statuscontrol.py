@@ -1,7 +1,7 @@
 from typing import Optional
 
 from qtpy.QtCore import Slot, Signal
-from qtpy.QtWidgets import QWidget, QVBoxLayout, QFormLayout, QHBoxLayout, QLabel, QLineEdit
+from qtpy.QtWidgets import QWidget, QVBoxLayout, QFormLayout, QHBoxLayout, QLabel, QLineEdit, QGridLayout
 
 from pyqtgraph import SpinBox
 
@@ -11,11 +11,15 @@ from core.utilities.config import dump_to_config, load_from_config
 
 from qtpy.QtWidgets import QComboBox
 
+
+from logging import getLogger
+logger = getLogger(__name__)
+
 class DisabledLineEdit(QLineEdit):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        self.setDisabled(True)
+        self.setReadOnly(True)
 
 class StatusControl(QWidget):
     """
@@ -31,6 +35,8 @@ class StatusControl(QWidget):
     ):
         super().__init__(parent)
 
+        self._name = 'StatusControl'
+
         self._check_bluefors = _check_bluefors
         self._check_thermo = _check_thermo
         self._check_ground = _check_ground
@@ -39,32 +45,48 @@ class StatusControl(QWidget):
         self.dgw = DataGateway(allow_callback=True)
         self.dgw.connect()
 
-        lay = QFormLayout(self)
+        lay = QFormLayout()
+
+        layout = QGridLayout()
+        i = 0
 
         if self._check_bluefors:
-            id = self.dgw.register_callback("/status/bluefors/LakeShore370AC/MCBJ", lambda arr: self._handle_bluefors_status_callback(arr))
-            self.bluefors_label = DisabledLineEdit()
-            lay.addRow("Sample", self.bluefors_label)
+            self.bluefors = DisabledLineEdit()
+            self.bluefors_label = QLabel()
+            self.bluefors_label.setText('Sample T (mK)')
+            layout.addWidget(self.bluefors_label, i, 0)
+            layout.addWidget(self.bluefors, i, 1)
+            i += 1
+            id_bluefors = self.dgw.register_callback(
+                "/status/bluefors/temperature/MCBJ",
+                  lambda arr: self._handle_bluefors_status_callback(arr)
+                  )
 
         if self._check_thermo:
-            id = self.dgw.register_callback("/status/thermo", lambda arr: self._handle_thermo_status_callback(arr))
-            self.thermo_label = DisabledLineEdit()
-            lay.addRow("Ground separation", self.thermo_label)
-
-        if self._check_ground:
-            id = self.dgw.register_callback("/status/ground", lambda arr: self._handle_ground_status_callback(arr))
-            self.ground_label = DisabledLineEdit()
-            lay.addRow("Laboratory", self.ground_label)
+            self.thermo = DisabledLineEdit()
+            self.thermo_label = QLabel()
+            self.thermo_label.setText('Lab T (°C)')
+            layout.addWidget(self.thermo_label, i, 0)
+            layout.addWidget(self.thermo, i, 1)
+            i += 1
+            id_thermo = self.dgw.register_callback(
+                "/status/thermo", 
+                lambda arr: self._handle_thermo_status_callback(arr)
+                )
         
+        vlayout = QVBoxLayout(self)
+        vlayout.addLayout(layout)
+        vlayout.addStretch()
+
+        logger.debug('%s initialized.', self._name)
+
 
     def _handle_bluefors_status_callback(self, arr):
+        logger.debug('%s._handle_bluefors_status_callback()', self._name)
         T = arr['T'][0]
-        self.bluefors_label.setText(f"T = {T:.2f} K")
-
-    def _handle_ground_status_callback(self, arr):
-        R = arr['R'][0]
-        self.ground_label.setText(f"R = {R/1000:.1f} kOhm")
+        self.bluefors.setText(f"{T*1000:.1f}")
 
     def _handle_thermo_status_callback(self, arr):
+        logger.debug('%s._handle_thermo_status_callback()', self._name)
         T = arr['T'][0]
-        self.thermo_label.setText(f"T = {T:.2f} °C")
+        self.thermo.setText(f"{T:.2f}")

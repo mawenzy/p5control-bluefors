@@ -9,43 +9,11 @@ from p5control import InstrumentGateway, DataGateway
 from p5control.gui.widgets.measurementcontrol import StatusIndicator, PlayPauseButton
 from core.utilities.config import dump_to_config, load_from_config
 
-
-    # def __init__(self, parent: Optional[QWidget] = None):
-    #     super().__init__(parent)
-
-    #     self.playing = False
-    #     self._update_icon()
-
-    #     self.clicked.connect(self._handle_click)
-
-    # def _handle_click(self):
-    #     self.playing = not self.playing
-    #     self._update_icon()
-    #     self.changed.emit(self.playing)
-
-    # def _update_icon(self):
-    #     if self.playing:
-    #         self.setIcon(self.style().standardIcon(QStyle.SP_MediaPause))
-    #     else:
-    #         self.setIcon(self.style().standardIcon(QStyle.SP_MediaPlay))
-
-    # def set_playing(self, playing: bool):
-    #     """
-    #     Change playing parameter and upate icon
-
-    #     Parameters
-    #     ----------
-    #     playing : bool
-    #         state to set the button in
-    #     """
-    #     if self.playing == playing:
-    #         return
-    #     self.playing = playing
-    #     self._update_icon()
-    #     self.changed.emit(self.playing)
-
-
 from qtpy.QtWidgets import QComboBox
+
+
+from logging import getLogger
+logger = getLogger(__name__)
 
 
 class MotorControl(QWidget):
@@ -58,6 +26,8 @@ class MotorControl(QWidget):
         parent: Optional['QWidget'] = None
     ):
         super().__init__(parent)
+
+        self._name = 'MotorControl'
 
         self.gw = gw
         self.dgw = DataGateway(allow_callback=True)
@@ -97,13 +67,18 @@ class MotorControl(QWidget):
         layout.addLayout(row3_lay)
         layout.addStretch()
 
+        logger.debug('%s initialized.', self._name)
+
     def _handle_target_pos(self):
+        logger.debug('%s._handle_target_pos()', self._name)
         self.gw.motor.set_target_position(float(self.target_pos.value()))
 
     def _handle_target_speed(self):
+        logger.debug('%s._handle_target_speed()', self._name)
         self.gw.motor.set_target_speed(float(self.target_speed.value()))
 
     def _handle_status_callback(self, arr):
+        logger.debug('%s._handle_status_callback()', self._name)
         pos = arr['position'][0]
         self._moving = arr['moving'][0]
         # print(self.T, self._moving)
@@ -111,8 +86,7 @@ class MotorControl(QWidget):
         self.btn.set_playing(self._moving)
         self.label.setText(f"pos = {pos:.3f}")
 
-
-
     @Slot(bool)
     def _handle_btn_change(self, playing:bool):
+        logger.debug('%s._handle_btn_change(%s)', self._name, playing)
         self.gw.motor.set_moving(playing)

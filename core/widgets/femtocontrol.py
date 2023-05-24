@@ -10,10 +10,12 @@ from p5control.gui.widgets.measurementcontrol import StatusIndicator, PlayPauseB
 
 from qtpy.QtWidgets import QComboBox
 
+from logging import getLogger
+logger = getLogger(__name__)
 
 class FemtoControl(QWidget):
     """
-    Widget to control Adwin Gold 2 v2
+    Widget to control FemtoControl
     """
     def __init__(
         self,
@@ -25,6 +27,8 @@ class FemtoControl(QWidget):
         self.gw = gw
         self.dgw = DataGateway(allow_callback=True)
         self.dgw.connect()
+
+        self._name = 'FemtoControl'
 
         self.amps = []
         for i in range(2):
@@ -39,7 +43,7 @@ class FemtoControl(QWidget):
         self.status_indicator_A = StatusIndicator()
         self.status_indicator_B = StatusIndicator()
 
-        lay = QGridLayout(self)
+        lay = QGridLayout()
         lay.addWidget(QLabel("Amp(V1):"), 0, 0)
         lay.addWidget(QLabel("Amp(V2):"), 1, 0)
 
@@ -49,22 +53,31 @@ class FemtoControl(QWidget):
         lay.addWidget(self.status_indicator_A, 0, 2)
         lay.addWidget(self.status_indicator_B, 1, 2)
 
+        vlayout = QVBoxLayout(self)
+        vlayout.addLayout(lay)
+        vlayout.addStretch()
+
         self.id = self.dgw.register_callback(
             "/status/femtos", 
             lambda arr: self._handle_status_callback(arr)
             )
         
         # lay.setColumnStretch(1, 1)
+        
+        logger.debug('%s initialized.', self._name)
 
     def onChanged_ch1(self, index):
+        logger.debug('%s.onChanged_ch1(%i)', self._name, index)
         amps=[10, 100, 1000, 10000]
         self.gw.femtos.set_amplification_A(amps[index])
 
     def onChanged_ch2(self, index):
+        logger.debug('%s.onChanged_ch2(%i)', self._name, index)
         amps=[10, 100, 1000, 10000]
         self.gw.femtos.set_amplification_B(amps[index])
 
     def _handle_status_callback(self, arr):
+        logger.debug('%s._handle_status_callback()', self._name)
         overload_A = not arr['overload_A'][0]
         overload_B = not arr['overload_B'][0]
         self.status_indicator_A.set_state(overload_A)

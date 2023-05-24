@@ -32,7 +32,9 @@ from p5control.gui import (
     MeasurementControl
 )
 
-from core.widgets import AdwinControl_v2, CalcControl, MotorControl, StatusControl, FemtoControl
+from core.widgets import AdwinControl_v2, CalcControl, MotorControl, StatusControl, FemtoControl, MagnetControl
+
+from core.widgets import AdwinSensorControl, AdwinSweepControl, AdwinLockinControl, AdwinOutputControl ,AdwinGateControl
 
 import core.plot
 
@@ -135,13 +137,15 @@ class BlueForsGUIMainWindow(QMainWindow):
         # file menu
         self.file_menu = menu.addMenu('&File')
 
-        self.file_menu.addAction(QAction(
-            "Refresh",
-            self,
-            shortcut=QKeySequence.Refresh,
-            statusTip='Refresh TreeView',
-            triggered=self.handle_refresh
-        ))
+        self.file_menu.addAction(
+            QAction(
+                "Refresh",
+                self,
+                shortcut=QKeySequence.Refresh,
+                statusTip='Refresh TreeView',
+                triggered=self.handle_refresh,
+            )
+        )
 
         # view menu
         self.view_menu = menu.addMenu('&View')
@@ -170,9 +174,17 @@ class BlueForsGUIMainWindow(QMainWindow):
         self.measurement_control = MeasurementControl(self.gw)
 
         if self._check_adwin:
-            self.adwin_control = AdwinControl_v2(self.gw)
+            self.adwin_sensor_control = AdwinSensorControl(self.gw)
+            self.adwin_sweep_control = AdwinSweepControl(self.gw)
+            self.adwin_lockin_control = AdwinLockinControl(self.gw)
+            self.adwin_output_control = AdwinOutputControl(self.gw)
+            self.adwin_gate_control = AdwinGateControl(self.gw)
         else:
-            self.adwin_control = None
+            self.adwin_sensor_control = None
+            self.adwin_sweep_control = None
+            self.adwin_lockin_control = None
+            self.adwin_output_control = None
+            self.adwin_gate_control = None
 
         if self._check_femtos:
             self.femto_control = FemtoControl(self.gw)
@@ -188,6 +200,11 @@ class BlueForsGUIMainWindow(QMainWindow):
             self.motor_control = MotorControl(self.gw)
         else:
             self.motor_control = None
+
+        if self._check_magnet:
+            self.magnet_control = MagnetControl(self.gw)
+        else:
+            self.magnet_control = None
 
         if self._check_status:
             self.status_control = StatusControl(self.gw,
@@ -221,12 +238,32 @@ class BlueForsGUIMainWindow(QMainWindow):
         self.measurement_control_dock.setWidget(self.measurement_control)
 
         if self._check_adwin:
-            self.adwin_control_dock = QDockWidget('ADwin Control', self)
-            self.adwin_control_dock.setMinimumWidth(MIN_DOCK_WIDTH)
-            self.adwin_control_dock.setWidget(self.adwin_control)
+            self.adwin_sensor_control_dock = QDockWidget('ADwin Sensor Control', self)
+            self.adwin_sensor_control_dock.setMinimumWidth(MIN_DOCK_WIDTH)
+            self.adwin_sensor_control_dock.setWidget(self.adwin_sensor_control)
+
+            self.adwin_sweep_control_dock = QDockWidget('ADwin Sweep Control', self)
+            self.adwin_sweep_control_dock.setMinimumWidth(MIN_DOCK_WIDTH)
+            self.adwin_sweep_control_dock.setWidget(self.adwin_sweep_control)
+
+            self.adwin_lockin_control_dock = QDockWidget('ADwin Lockin Control', self)
+            self.adwin_lockin_control_dock.setMinimumWidth(MIN_DOCK_WIDTH)
+            self.adwin_lockin_control_dock.setWidget(self.adwin_lockin_control)
+            self.adwin_sweep_control_dock.setWidget(self.adwin_sweep_control)
+
+            self.adwin_output_control_dock = QDockWidget('ADwin Output Control', self)
+            self.adwin_output_control_dock.setMinimumWidth(MIN_DOCK_WIDTH)
+            self.adwin_output_control_dock.setWidget(self.adwin_output_control)
+
+            self.adwin_gate_control_dock = QDockWidget('ADwin Gate Control', self)
+            self.adwin_gate_control_dock.setMinimumWidth(MIN_DOCK_WIDTH)
+            self.adwin_gate_control_dock.setWidget(self.adwin_gate_control)
         else:
-            self.adwin_control_dock = None
-        self.measurement_control_dock.setWidget(self.measurement_control)
+            self.adwin_sensor_control_dock = None
+            self.adwin_sweep_control_dock = None
+            self.adwin_lockin_control_dock = None
+            self.adwin_output_control_dock = None
+            self.adwin_gate_control_dock = None
 
         if self._check_femtos:
             self.femto_control_dock = QDockWidget('Femto Control', self)
@@ -249,6 +286,13 @@ class BlueForsGUIMainWindow(QMainWindow):
         else:
             self.motor_control_dock = None
 
+        if self._check_magnet:
+            self.magnet_control_dock = QDockWidget('Magnet Control', self)
+            self.magnet_control_dock.setMinimumWidth(MIN_DOCK_WIDTH)
+            self.magnet_control_dock.setWidget(self.magnet_control)
+        else:
+            self.magnet_control_dock = None
+
         if self._check_status:
             self.status_control_dock = QDockWidget('Status', self)
             self.status_control_dock.setMinimumWidth(MIN_DOCK_WIDTH)
@@ -258,24 +302,39 @@ class BlueForsGUIMainWindow(QMainWindow):
 
         # add dock widgets
         self.addDockWidget(Qt.LeftDockWidgetArea, self.tree_dock)
+        self.addDockWidget(Qt.LeftDockWidgetArea, self.plot_form_dock)
 
         self.addDockWidget(Qt.RightDockWidgetArea, self.measurement_control_dock)
         
         if self._check_adwin:
-            self.addDockWidget(Qt.RightDockWidgetArea, self.adwin_control_dock)
+            self.addDockWidget(Qt.RightDockWidgetArea, self.adwin_sensor_control_dock)
+            self.addDockWidget(Qt.RightDockWidgetArea, self.adwin_sweep_control_dock)
+            self.addDockWidget(Qt.RightDockWidgetArea, self.adwin_lockin_control_dock)
+            self.addDockWidget(Qt.RightDockWidgetArea, self.adwin_output_control_dock)
+            self.addDockWidget(Qt.RightDockWidgetArea, self.adwin_gate_control_dock)
+
         if self._check_femtos:
             self.addDockWidget(Qt.RightDockWidgetArea, self.femto_control_dock)
         if self._check_calc:
             self.addDockWidget(Qt.RightDockWidgetArea, self.calc_control_dock)
-
-        
         if self._check_motor:
             self.addDockWidget(Qt.RightDockWidgetArea, self.motor_control_dock)
+        if self._check_magnet:
+            self.addDockWidget(Qt.RightDockWidgetArea, self.magnet_control_dock)
         if self._check_status:
             self.addDockWidget(Qt.RightDockWidgetArea, self.status_control_dock)
-            
-        # self.addDockWidget(Qt.RightDockWidgetArea, self.plot_form_dock)
-        self.splitDockWidget(self.status_control_dock, self.plot_form_dock, Qt.Horizontal)
+
+        self.addDockWidget(Qt.LeftDockWidgetArea, self.plot_form_dock)
+
+        if self._check_status:
+            self.splitDockWidget(self.measurement_control_dock, self.status_control_dock, Qt.Horizontal)
+        if self._check_motor and self._check_magnet:
+            self.splitDockWidget(self.magnet_control_dock, self.motor_control_dock, Qt.Horizontal)
+        if self._check_adwin:
+            self.splitDockWidget(self.adwin_sweep_control_dock, self.adwin_lockin_control_dock, Qt.Horizontal)
+            self.splitDockWidget(self.adwin_output_control_dock, self.adwin_gate_control_dock, Qt.Horizontal)
+        if self._check_adwin and self._check_femtos:
+            self.splitDockWidget(self.adwin_sensor_control_dock, self.femto_control_dock, Qt.Horizontal)
 
         # self.view_menu.addActions([
         #     self.tree_dock.toggleViewAction(),
@@ -289,13 +348,19 @@ class BlueForsGUIMainWindow(QMainWindow):
         liste=[]
         liste.append(self.tree_dock.toggleViewAction())
         if self._check_adwin:
-            liste.append(self.adwin_control_dock.toggleViewAction())
+            liste.append(self.adwin_sensor_control_dock.toggleViewAction())
+            liste.append(self.adwin_sweep_control_dock.toggleViewAction())
+            liste.append(self.adwin_lockin_control_dock.toggleViewAction())
+            liste.append(self.adwin_output_control_dock.toggleViewAction())
+            liste.append(self.adwin_gate_control_dock.toggleViewAction())
         if self._check_femtos:
             liste.append(self.femto_control_dock.toggleViewAction())
         if self._check_calc:
             liste.append(self.calc_control_dock.toggleViewAction())
         if self._check_motor:
             liste.append(self.motor_control_dock.toggleViewAction())
+        if self._check_magnet:
+            liste.append(self.magnet_control_dock.toggleViewAction())
         if self._check_status:
             liste.append(self.status_control_dock.toggleViewAction())
         liste.append(self.plot_form_dock.toggleViewAction())

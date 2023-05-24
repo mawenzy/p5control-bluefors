@@ -1,0 +1,11 @@
+{
+    "configurations": [
+        {
+            "name": "bfs",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/bluefors_server.py",
+            "justMyCode": true
+        }
+    ]
+}

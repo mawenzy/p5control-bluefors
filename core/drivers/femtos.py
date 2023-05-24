@@ -216,8 +216,8 @@ class FemtoDLPVA100B(BaseDriver):
 
         self.set_dc(True)
         self.set_low_noise(True)
-        self.set_amplification_A(1000)
-        self.set_amplification_B(1000)
+        self.set_amplification_A(10)
+        self.set_amplification_B(10)
 
     def close(self):
         logger.debug(f'{self._name}.close()')

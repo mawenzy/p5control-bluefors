@@ -16,21 +16,30 @@ from core.drivers.thermometer import Keysight34461A_thermometer
 from core.drivers.faulhaber import Faulhaber
 from core.drivers.ground import Keysight34461A_ground
 from core.drivers.femtos import FemtoDLPVA100B
+from core.drivers.ami430 import AMI430
+from core.drivers.fourwire import Keysight34461A_fourwire
 
-# inserv = InstrumentServer(data_server_filename='.data//SUPERSHAPREFB.hdf5') #data_server_filename='.data/session0081.hdf5') #data_server_filename='.data/NoiseTest.hdf5')
-inserv = InstrumentServer(data_server_filename='.data/session0108.hdf5')
+#inserv = InstrumentServer(data_server_filename='.data//SUPERSHAPREFB.hdf5') #data_server_filename='.data/session0081.hdf5') #data_server_filename='.data/NoiseTest.hdf5')
+# inserv = InstrumentServer(data_server_filename='.data/session0158.hdf5')
+# inserv = InstrumentServer(data_server_filename='.data//SUPERSHAPREFD_lowRref.hdf5')
+# inserv = InstrumentServer()
+inserv = InstrumentServer(data_server_filename='.data/4point_Rref_0.hdf5')
 
+# inserv._add('adwin', drivers.ADwinGold2_v4)
+# inserv._add('femtos', FemtoDLPVA100B)
 
-inserv._add('adwin', drivers.ADwinGold2_v2)
-# inserv._add('calc', Calculator)
+inserv._add('bluefors', drivers.BlueForsAPI)
+# inserv._add('motor', Faulhaber)
+# inserv._add('magnet', AMI430, '192.168.1.103')
+inserv._add('thermo', Keysight34461A_thermometer, 'TCPIP0::192.168.1.111::INSTR')
+
 # inserv._add('vna', drivers.ZNB40, '192.168.1.104')
-inserv._add('motor', Faulhaber)
+inserv._add('fourwire', Keysight34461A_fourwire, 'TCPIP0::192.168.1.110::INSTR')
+
+# inserv._add('calc', Calculator)
 # inserv._add('multi_V1', drivers.Keysight34461A, 'TCPIP0::192.168.1.110::INSTR')
 # inserv._add('multi_V2', drivers.Keysight34461A, 'TCPIP0::192.168.1.111::INSTR')
 # inserv._add('ground', Keysight34461A_ground, 'TCPIP0::192.168.1.110::INSTR')
-inserv._add('thermo', Keysight34461A_thermometer, 'TCPIP0::192.168.1.111::INSTR')
-inserv._add('bluefors', drivers.BlueForsAPI)
-inserv._add('femtos', FemtoDLPVA100B)
 
 
 print("Added instruments successfully.")
@@ -39,7 +48,8 @@ inserv.start()
 
 inserv_cli(inserv)
 
-inserv._remove('femtos')
+# inserv._remove('femtos')
+# inserv._remove('magnet')
 
 
 # inserv._add('inst1', drivers.ExampleInst)
