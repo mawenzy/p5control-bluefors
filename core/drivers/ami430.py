@@ -9,6 +9,7 @@ from threading import Lock
 
 from p5control.drivers.basedriver import BaseDriver, BaseDriverError
 
+import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -136,25 +137,27 @@ class AMI430(BaseDriver):
         self._running = False
 
     def get_status(self):
+        logger.debug('%s.get_status()', self._name)
         now = time.time()
+        field = self.get_status_field()
         state = self.get_state()
-        field = self.get_field()
         rate = self.get_rate()
         target = self.get_target_field()
-        return {
+        status = {
             "time": now,
             "field": field,
             "state": state,
             "rate": rate,
             "target": target,
         }
+        logger.debug('%s.get_status(): %s', self._name, str(status))
+        return status
 
     def get_data(self):
-        field = self.get_field()
-        now = time.time()
+        logger.debug('%s.get_data()', self._name)
         return {
-            "time": now,
-            "field": field,
+            "time": float(time.time()),
+            "field": float(self.get_field()),
         }
         
     '''
@@ -167,18 +170,25 @@ class AMI430(BaseDriver):
             field = float(self._inst.query('FIELD:MAGnet?'))  
         self._field = field
         return field
+    
+    def get_status_field(self):
+        if not self._running:
+            self.get_field()
+        return self._field
 
     def ramp(self):
         logger.debug('%s.ramp()', self._name)
         with self.lock:
             self._inst.write('RAMP')
             self._inst.query('*OPC?')
+        self._state = True
 
     def pause(self):
         logger.debug('%s.pause()', self._name)
         with self.lock:
             self._inst.write('PAUSE')
             self._inst.query('*OPC?')
+        self._state = False
         
     def goto_zero(self):
         logger.debug('%s.goto_zero()', self._name)
@@ -203,7 +213,15 @@ class AMI430(BaseDriver):
         logger.debug('%s.get_state()', self._name)
         with self.lock:
             state = int(self._inst.query('STATE?'))
+            logger.debug(state)
         return state
+
+    # def get_state(self):
+    #     logger.debug('%s.get_state()', self._name)
+    #     if self._state:
+    #         if np.abs(self._target - self._field) <= 1e-4:
+    #             self._state = False
+    #     return self._state
 
     def set_rate(self, rate: float):
         logger.debug('%s.set_rate()', self._name)
@@ -227,7 +245,7 @@ class AMI430(BaseDriver):
 
     def get_rate(self):
         logger.debug('%s.get_rate()', self._name)
-        return self._rate
+        return float(self._rate)
 
     def set_target_field(self, target: float):
         logger.debug('%s.set_target_field(%f)', self._name, target)
@@ -251,5 +269,5 @@ class AMI430(BaseDriver):
     def get_target_field(self):
         logger.debug('%s.get_target_field()', self._name)
         target = self._target
-        return target
+        return float(target)
     

@@ -5,7 +5,8 @@ import time
 
 import numpy as np
 
-from p5control.drivers.basedriver import ThreadSafeBaseDriver
+from p5control.drivers.basedriver import BaseDriver, ThreadSafeBaseDriver
+from p5control import DataGateway, InstrumentGateway
 
 class Keysight34461A_fourwire(ThreadSafeBaseDriver):
     """Driver for the Keysight34461A. Since it is MessageBased, we can use much

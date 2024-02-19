@@ -5,7 +5,8 @@ import time
 
 import numpy as np
 
-from p5control.drivers.basedriver import ThreadSafeBaseDriver
+from p5control.drivers.basedriver import BaseDriver, ThreadSafeBaseDriver
+from p5control import DataGateway, InstrumentGateway
 
 class Keysight34461A_thermometer(ThreadSafeBaseDriver):
     """Driver for the Keysight34461A. Since it is MessageBased, we can use much
@@ -19,7 +20,7 @@ class Keysight34461A_thermometer(ThreadSafeBaseDriver):
         connected.
         """
         super().open()
-
+        self._temperature = np.nan
         self.r_twentyfive = 1e4
         self.one_over_t_twentyfive = 1 / 298.15
         self.beta = 3975.0

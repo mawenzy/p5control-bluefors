@@ -6,7 +6,7 @@ from qtpy.QtWidgets import QWidget, QVBoxLayout, QFormLayout, QHBoxLayout, QLabe
 from pyqtgraph import SpinBox
 
 from p5control import InstrumentGateway, DataGateway
-from p5control.gui.widgets.measurementcontrol import StatusIndicator, PlayPauseButton
+from .utils import PlayPauseButton, StatusIndicator
 from core.utilities.config import dump_to_config, load_from_config
 
 from qtpy.QtWidgets import QComboBox
@@ -51,9 +51,9 @@ class StatusControl(QWidget):
         i = 0
 
         if self._check_bluefors:
-            self.bluefors = DisabledLineEdit()
+            self.bluefors = QLabel()
             self.bluefors_label = QLabel()
-            self.bluefors_label.setText('Sample T (mK)')
+            self.bluefors_label.setText('Sample T: (mK)')
             layout.addWidget(self.bluefors_label, i, 0)
             layout.addWidget(self.bluefors, i, 1)
             i += 1
@@ -63,9 +63,9 @@ class StatusControl(QWidget):
                   )
 
         if self._check_thermo:
-            self.thermo = DisabledLineEdit()
+            self.thermo = QLabel()
             self.thermo_label = QLabel()
-            self.thermo_label.setText('Lab T (°C)')
+            self.thermo_label.setText('Lab T: (°C)')
             layout.addWidget(self.thermo_label, i, 0)
             layout.addWidget(self.thermo, i, 1)
             i += 1
@@ -74,6 +74,8 @@ class StatusControl(QWidget):
                 lambda arr: self._handle_thermo_status_callback(arr)
                 )
         
+        layout.setColumnStretch(i+1, i+1)
+
         vlayout = QVBoxLayout(self)
         vlayout.addLayout(layout)
         vlayout.addStretch()

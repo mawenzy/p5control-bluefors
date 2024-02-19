@@ -27,7 +27,7 @@ class Faulhaber(BaseDriver):
     def __init__(self, name: str):
         # super().__init__()
         
-        self.refresh_delay = 0.5
+        self.refresh_delay = 0.1
 
         self._name = name
         self._address = 1
@@ -36,7 +36,9 @@ class Faulhaber(BaseDriver):
 
         self._norm_turn = 1e8
         self._target_pos = np.NAN
-        self._target_speed = 7000
+        self._target_speed = 7000 # even though manual tells 30000
+
+        "Limits can be at maximum +/- 1.8e9. Else overflow and movement direction is inverted."
 
         self._moving = False
         self._counter = 0
@@ -55,7 +57,9 @@ class Faulhaber(BaseDriver):
         logger.info('opened resource "%s" at address "%s"', self._name, self._address)
 
     def close(self):
-        #disconnect
+        # disable & disconnect
+        logger.info("%s Close connection.", self._name)
+        self.query("DI")
         logger.info('closing resource "%s" at address "%s"', self._name, self._address)
         self._inst.close()
             
@@ -67,21 +71,19 @@ class Faulhaber(BaseDriver):
             logger.error("%s Connection was not established.", self._name)
 
         glob_pos = self.load_global_position_from_config()
+        # glob_pos=50000000
         self.query(f"HO{glob_pos}")
 
-        upper_limit = self.get_global_upper_limit()
-        self.query(f"LL{upper_limit}")
-
         lower_limit = self.get_global_lower_limit()
+        # lower_limit=-300000000
         self.query(f"LL{lower_limit}")
+
+        upper_limit = self.get_global_upper_limit()
+        # upper_limit=1800000000
+        self.query(f"LL{upper_limit}")
 
         self.query('NP')
         self.query(f"SP{self._target_speed}")
-
-    def stop_measuring(self):
-        # disable motor
-        logger.info("%s Close connection.", self._name)
-        self.query("DI")
 
     def query(self, string:str):
         with self.lock:
@@ -122,15 +124,17 @@ class Faulhaber(BaseDriver):
         logger.debug('%s.get_data()', self._name)
         # get position
         # get speed / current
-        if self._moving:
-            return self.retrieve_data()
-        else:
-            if (self._counter * self.refresh_delay) > self._idle_interval:
-                self._counter = 0
-                return self.retrieve_data()
-            else:
-                self._counter += 1
-                sleep(self.refresh_delay)
+        return self.retrieve_data()
+        
+        # if self._moving:
+        #     return self.retrieve_data()
+        # else:
+        #     if (self._counter * self.refresh_delay) > self._idle_interval:
+        #         self._counter = 0
+        #         return self.retrieve_data()
+        #     else:
+        #         self._counter += 1
+        #         sleep(self.refresh_delay)
 
     def get_status(self):
         logger.debug('%s.get_status()', self._name)
@@ -153,6 +157,9 @@ class Faulhaber(BaseDriver):
             "temperature": temperature,
             }
     
+    def reset_zero_pos(self):
+        logger.info('%s.reset_zero_pos', self._name)
+        self.query("HO")
     
     def set_moving(self, moving:bool):
         if moving:
@@ -212,6 +219,13 @@ class Faulhaber(BaseDriver):
                 'lower_limit': motor_dict['lower_limit'],
                 }
         }
+        # my_dict = {
+        #     'motor': {
+        #         'position': 50000000,
+        #         'upper_limit': -300000000,
+        #         'lower_limit': 1800000000,
+        #         }
+        # }
         dump_to_config(my_dict)
 
     def load_global_position_from_config(self):

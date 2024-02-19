@@ -14,6 +14,8 @@ from p5control.drivers.basedriver import BaseDriver
 from p5control import DataGateway, InstrumentGateway
 
 logger = logging.getLogger(__name__)
+
+logging.addLevelName(5,"verbose")
 from time import sleep
 from ctypes import cdll, c_char_p, c_int, byref
 from os import add_dll_directory
@@ -46,11 +48,11 @@ class Luci10:
         
     def led_on(self):
         self.luci.LedOn(self.index)
-        logger.debug('%s.led_on()', self._name)
+        # logger.debug('%s.led_on()', self._name)
 
     def led_off(self):
         self.luci.LedOff(self.index)
-        logger.debug('%s.led_off()', self._name)
+        # logger.debug('%s.led_off()', self._name)
 
     def list_adapters(self):
         """Prints a list of found interfaces
@@ -71,18 +73,18 @@ class Luci10:
                 name = chr_buffer.value.decode("utf-8")
                 string = "index: %i, name: %s, ID: %i" % (i, name, temp)
                 if check >= 0:
-                    logger.debug('%s.list_adapters() = %s', self._name, string)
+                    # logger.debug('%s.list_adapters() = %s', self._name, string)
                     check = check + 1
-        if check == 0:
-            logger.debug('%s.list_adapters() = %s', self._name, string)
-        if string == old_string:
-            logger.debug('%s.list_adapters() = %s', self._name, string)
+        # if check == 0:
+            # logger.debug('%s.list_adapters() = %s', self._name, string)
+        # if string == old_string:
+            # logger.debug('%s.list_adapters() = %s', self._name, string)
         return string
 
     def write_bytes(self, index, low, high):
         """Writes low and high byte to port (25:10)"""
         
-        logger.debug('%s.write_bytes(%s, %s, %s)', self._name, index, low, high)
+        # logger.debug('%s.write_bytes(%s, %s, %s)', self._name, index, low, high)
         return self.luci.WriteData(index, low, high)
 
     def get_status_pin5(self, index):
@@ -90,7 +92,7 @@ class Luci10:
         status = c_int(0)
         self.luci.GetStatusPin5(index, byref(status))
         status = bool(status.value)
-        logger.debug('%s.get_status_pin5(%i) = %s', self._name, index, status)
+        # logger.debug('%s.get_status_pin5(%i) = %s', self._name, index, status)
         return status
 
     def get_status_pin6(self, index):
@@ -98,7 +100,7 @@ class Luci10:
         status = c_int(0)
         self.luci.GetStatusPin6(index, byref(status))
         status = bool(status.value)
-        logger.debug('%s.get_status_pin6(%i) = %s', self._name, index, status)
+        # logger.debug('%s.get_status_pin6(%i) = %s', self._name, index, status)
         return status
 
     def get_status_pin7(self, index):
@@ -106,7 +108,7 @@ class Luci10:
         status = c_int(0)
         self.luci.GetStatusPin7(index, byref(status))
         status = bool(status.value)
-        logger.debug('%s.get_status_pin7(%i) = %s', self._name, index, status)
+        # logger.debug('%s.get_status_pin7(%i) = %s', self._name, index, status)
         return status
 
 
@@ -116,7 +118,7 @@ class FemtoDLPVA100BWorker(Thread):
         name,
         queue,
         index=1,
-        delay=0.2,
+        delay=1,
     ):
         super().__init__()
 
@@ -262,7 +264,7 @@ class FemtoDLPVA100B(BaseDriver):
         if np.sum(overload_B) > 0:
             self.overload_B = True           
 
-        logger.debug('%s.get_data() %s', self._name, f'{len(times)}, {len(overload_A)}, {len(overload_B)}')
+        # logger.debug('%s.get_data() %s', self._name, f'{len(times)}, {len(overload_A)}, {len(overload_B)}')
 
         return {
             "time": list(times),
