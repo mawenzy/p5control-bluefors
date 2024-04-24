@@ -1,3 +1,8 @@
+'''
+version v6:
+- adwin has now attribute ovls
+'''
+
 import logging
 import time
 import os
@@ -25,6 +30,7 @@ class ADwinGold2(BaseDriver):
     def __init__(self, name: str):
         self._name = name
         self.version = 'v6'
+        self.processor_rate = 2e5
 
         self.refresh_delay = .1
 
@@ -35,6 +41,7 @@ class ADwinGold2(BaseDriver):
         sleep(.1)
 
         self.averaging = self.getAveraging()
+        self.sample_rate = self.processor_rate/self.averaging
         self.output = self.getOutput()
 
         self.sweeping = self.getSweeping()
@@ -76,6 +83,7 @@ class ADwinGold2(BaseDriver):
         self.V2_ovl = False
 
         return {
+            "sample_rate": self.sample_rate,
             "averaging": self.averaging,
             "output": self.output,
             "sweeping": self.sweeping,
@@ -317,13 +325,23 @@ class ADwinGold2(BaseDriver):
     def setAveraging(self, value:int):
         logger.debug('%s.setAveraging(%i)', self._name, value)
         with self.lock:
-            self.inst.Set_Par(Index=9, Value=value)
+            self.inst.Set_Par(Index=9, Value=int(value))
         self.averaging = self.getAveraging()
+        self.sample_rate = self.processor_rate/self.averaging
 
     def getAveraging(self):
         logger.debug('%s.getAveraging()', self._name)
         with self.lock:
             return int(self.inst.Get_Par(9))
+        
+    def setSampleRate(self, value:float):
+        logger.debug('%s.setSampleRate()', self._name)
+        self.setAveraging(self.processor_rate/value)
+
+    def getSampleRate(self):
+        logger.debug('%s.getSampleRate()', self._name)
+        return self.processor_rate/self.getAveraging()
+
             
     def setAmplitude(self, value:float):
         logger.debug('%s.setAmplitude(%i)', self._name, value)
