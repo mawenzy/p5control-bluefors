@@ -44,7 +44,7 @@ inserv._add('R_ref', Rref, R_ref = 100000)
 # inserv._add('adwin', ADwinGold2_v5_2ch)
 # inserv._add('source', KeysightB2962A_v2, 'TCPIP0::192.168.1.113::INSTR')
 
-inserv._add('bluefors', BlueForsAPI)
+# inserv._add('bluefors', BlueForsAPI)
 inserv._add('motor', Faulhaber)
 # inserv._add('magnet', AMI430, '192.168.1.103')
 # inserv._add('thermo', Keysight34461A_thermometer, 'TCPIP0::192.168.1.111::INSTR')
