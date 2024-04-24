@@ -94,6 +94,13 @@ class AdwinFemtoControl(QWidget):
         self.period = SpinBox(value=default_value, bounds=[0, 1000])
         self.period.valueChanged.connect(self._handle_period)
 
+        if not self.exist:
+            self.status_indicator_A.set_disabled()
+            self.status_indicator_B.set_disabled()
+            self.calc_status_indicator.set_disabled()
+            self.output_status_indicator.set_disabled()
+            self.sweeping_status_indicator.set_disabled()
+
         lay = QGridLayout()
 
         lay.addWidget(QLabel("off V1 (V):"), 0, 0)

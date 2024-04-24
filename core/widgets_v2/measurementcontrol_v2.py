@@ -26,6 +26,8 @@ class MeasurementControl(QWidget):
 
         # widgets
         self.status_indicator = StatusIndicator()
+        if not self.exist:
+            self.status_indicator.set_disabled()
         self.btn = PlayPauseButton()
         self.name = QLineEdit()
 

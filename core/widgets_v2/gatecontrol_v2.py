@@ -35,6 +35,8 @@ class GateControl(QWidget):
         self.id = self.dgw.register_callback("/status/gate", lambda arr: self._handle_status_callback(arr))
 
         self.status_indicator = StatusIndicator()
+        if not self.exist:
+            self.status_indicator.set_disabled()
         self.btn = PlayPauseButton()
         self.btn.changed.connect(self._handle_btn_change)
         if self.exist:

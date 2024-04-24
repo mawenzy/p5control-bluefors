@@ -37,6 +37,9 @@ class StatusIndicator(QToolButton):
         self.state = state
         self._update_color()
 
+    def set_disabled(self):
+        self.setStyleSheet("background-color: grey")
+
 class PlayPauseButton(QToolButton):
     """
     QToolButton which switches beteen play and pause icon.
