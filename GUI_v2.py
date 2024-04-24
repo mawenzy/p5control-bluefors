@@ -56,7 +56,12 @@ from p5control.gui import (
 from core.widgets_v2 import (
     MeasurementControl,
     AdwinFemtoControl,
-    StatusControl,
+    GateControl,
+    VNAControl,
+    LockinControl,
+    MagnetControl,
+    MotorControl,
+    HeaterControl,
 )
 
 import core.plot
@@ -87,42 +92,45 @@ class BlueForsGUIMainWindow(QMainWindow):
 
 
     def check_instruments(self):
+        
+        ## Add new stuff here!
         try:
             adwin = self.gw.adwin.version
-            self._check_adwin = True
-        except AttributeError:
-            self._check_adwin = False
-
-        try:
             femto = self.gw.femto
-            self._check_femtos = True
-        except:
-            self._check_femtos = False
-
-        # try:
-        #     bf = self.gw.bluefors
-        #     self._check_bluefors = True 
-        # except AttributeError:
-        #     self._check_bluefors = False
-            
-        # try:
-        #     motor = self.gw.motor
-        #     self._check_motor = True
-        # except AttributeError:
-        #     self._check_motor = False
-
-        # try:
-        #     magnet = self.gw.magnet
-        #     self._check_magnet = True
-        # except AttributeError:
-        #     self._check_magnet = False
-
-        # try:
-        #     vna = self.gw.vna
-        #     self._check_vna = True
-        #     self._vna_case = self.gw.vna.case
-        # except:
-        #     self._check_vna = False
+            self._check_sensor = True
+        except AttributeError:
+            self._check_sensor = False
+        try:
+            vna = self.gw.vna
+            self._check_vna = True
+        except AttributeError:
+            self._check_vna = False
+        try:
+            gate = self.gw.gate
+            self._check_gate = True
+        except AttributeError:
+            self._check_gate = False
+        try:
+            lockin = self.gw.lockin
+            self._check_lockin = True
+        except AttributeError:
+            self._check_lockin = False
+        try:
+            magnet = self.gw.magnet
+            self._check_magnet = True
+        except AttributeError:
+            self._check_magnet = False
+        try:
+            motor = self.gw.motor
+            self._check_motor = True
+        except AttributeError:
+            self._check_motor = False
+        try:
+            bluefors = self.gw.bluefors
+            self._check_heater = True
+        except AttributeError:
+            self._check_heater = False
+        ##
 
 
     def init_actions(self):
@@ -169,50 +177,46 @@ class BlueForsGUIMainWindow(QMainWindow):
         """
         Initialize widgets
         """
+        
         self.tree_view = DataGatewayTreeView(self.dgw)
         self.tree_view.expandAll()
 
         self.plot_form = PlotForm(self.dgw)
+        self.tabs = PlotTabWidget(self.dgw, plot_form=self.plot_form)
+        self.setCentralWidget(self.tabs)
 
         self.measurement_control = MeasurementControl(self.gw)
 
-        if self._check_adwin and self._check_femtos:
-            self.sensor_control = AdwinFemtoControl(self.gw)
-        else:
-            self.sensor_control = None
+        ## Add new stuff here!
+        self.sensor_control = AdwinFemtoControl(self.gw)
+        if not self._check_sensor:
+            self.sensor_control.setDisabled(True)
 
+        self.vna_control = VNAControl(self.gw)
+        if not self._check_vna:
+            self.vna_control.setDisabled(True)
 
-        # if self._check_adwin:
-        #     self.adwin_sensor_control = Adwinv4SensorControl(self.gw)
-        # else:
-        #     self.adwin_sensor_control = None
+        self.gate_control = GateControl(self.gw)
+        if not self._check_gate:
+            self.gate_control.setDisabled(True)
 
-        # if self._check_femtos:
-        #     self.femto_control = FemtoControl(self.gw)
-        # else:
-        #     self.femto_control = None
-        # if self._check_motor:
-        #     self.motor_control = MotorControl(self.gw)
-        # else:
-        #     self.motor_control = None
+        self.lockin_control = LockinControl(self.gw)
+        if not self._check_lockin:
+            self.lockin_control.setDisabled(True)
 
-        # if self._check_magnet:
-        #     self.magnet_control = MagnetControl(self.gw)
-        # else:
-        #     self.magnet_control = None
+        self.magnet_control = MagnetControl(self.gw)
+        if not self._check_magnet:
+            self.magnet_control.setDisabled(True)
+            
+        self.motor_control = MotorControl(self.gw)
+        if not self._check_motor:
+            self.motor_control.setDisabled(True)
+            
+        self.heater_control = HeaterControl(self.gw)
+        if not self._check_heater:
+            self.heater_control.setDisabled(True)
+        ##
 
-        # if self._check_vna:
-        #     if self._vna_case == 'time':
-        #         self.vna_control = VNATSweepControl(self.gw)
-        #     if self._vna_case == 'frequency':
-        #         self.vna_control = VNAFSweepControl(self.gw)
-        # else:
-        #     self.vna_control = None
-
-
-        self.tabs = PlotTabWidget(self.dgw, plot_form=self.plot_form)
-
-        self.setCentralWidget(self.tabs)
 
     def init_docks(self):
         """
@@ -232,97 +236,73 @@ class BlueForsGUIMainWindow(QMainWindow):
         self.measurement_control_dock.setMinimumWidth(MIN_DOCK_WIDTH)
         self.measurement_control_dock.setWidget(self.measurement_control)
 
-        if self._check_adwin and self._check_femtos:
-            self.sensor_control_dock = QDockWidget('Sensor control', self)
-            self.sensor_control_dock.setMinimumWidth(MIN_DOCK_WIDTH)
-            self.sensor_control_dock.setWidget(self.sensor_control)
-        else:
-            self.sensor_control_dock = None
+        ## Add new stuff here!
+        self.sensor_control_dock = QDockWidget('Sensor control', self)
+        self.sensor_control_dock.setMinimumWidth(MIN_DOCK_WIDTH)
+        self.sensor_control_dock.setWidget(self.sensor_control)
 
+        self.vna_control_dock = QDockWidget('VNA control', self)
+        self.vna_control_dock.setMinimumWidth(MIN_DOCK_WIDTH)
+        self.vna_control_dock.setWidget(self.vna_control)
+        
+        self.gate_control_dock = QDockWidget('Gate control', self)
+        self.gate_control_dock.setMinimumWidth(MIN_DOCK_WIDTH)
+        self.gate_control_dock.setWidget(self.gate_control)
 
+        self.lockin_control_dock = QDockWidget('Lockin control', self)
+        self.lockin_control_dock.setMinimumWidth(MIN_DOCK_WIDTH)
+        self.lockin_control_dock.setWidget(self.lockin_control)
 
-        # if self._check_adwin:
-        #     self.adwin_sensor_control_dock = QDockWidget('ADwin Sensor Control', self)
-        #     self.adwin_sensor_control_dock.setMinimumWidth(MIN_DOCK_WIDTH)
-        #     self.adwin_sensor_control_dock.setWidget(self.adwin_sensor_control)
-        # else:
-        #     self.adwin_sensor_control_dock = None
+        self.magnet_control_dock = QDockWidget('Magnet control', self)
+        self.magnet_control_dock.setMinimumWidth(MIN_DOCK_WIDTH)
+        self.magnet_control_dock.setWidget(self.magnet_control)
 
-        # if self._check_femtos:
-        #     self.femto_control_dock = QDockWidget('Femto Control', self)
-        #     self.femto_control_dock.setMinimumWidth(MIN_DOCK_WIDTH)
-        #     self.femto_control_dock.setWidget(self.femto_control)
-        # else:
-        #     self.femto_control_dock = None
+        self.motor_control_dock = QDockWidget('Motor control', self)
+        self.motor_control_dock.setMinimumWidth(MIN_DOCK_WIDTH)
+        self.motor_control_dock.setWidget(self.motor_control)
 
-        # if self._check_motor:
-        #     self.motor_control_dock = QDockWidget('Motor Control', self)
-        #     self.motor_control_dock.setMinimumWidth(MIN_DOCK_WIDTH)
-        #     self.motor_control_dock.setWidget(self.motor_control)
-        # else:
-        #     self.motor_control_dock = None
+        self.heater_control_dock = QDockWidget('Heater control', self)
+        self.heater_control_dock.setMinimumWidth(MIN_DOCK_WIDTH)
+        self.heater_control_dock.setWidget(self.heater_control)
+        ##
 
-        # if self._check_magnet:
-        #     self.magnet_control_dock = QDockWidget('Magnet Control', self)
-        #     self.magnet_control_dock.setMinimumWidth(MIN_DOCK_WIDTH)
-        #     self.magnet_control_dock.setWidget(self.magnet_control)
-        # else:
-        #     self.magnet_control_dock = None
-
-        # if self._check_vna:
-        #     if self._vna_case == 'time':
-        #         self.vna_source_control_dock = QDockWidget(f'VNA Control S_{self.gw.vna.S}(t)', self)
-        #     if self._vna_case == 'frequency':
-        #         self.vna_source_control_dock = QDockWidget(f'VNA Control S_{self.gw.vna.S}(f)', self)
-        #     self.vna_source_control_dock.setMinimumWidth(MIN_DOCK_WIDTH)
-        #     self.vna_source_control_dock.setWidget(self.vna_control)
-        # else:
-        #     self.vna_source_control_dock = None
-
-        # add dock widgets
+        liste=[]
         self.addDockWidget(Qt.LeftDockWidgetArea, self.tree_dock)
+        liste.append(self.tree_dock.toggleViewAction())
+
         self.addDockWidget(Qt.LeftDockWidgetArea, self.plot_form_dock)
+        liste.append(self.plot_form_dock.toggleViewAction())
 
         self.addDockWidget(Qt.RightDockWidgetArea, self.measurement_control_dock)
         
-        if self._check_adwin and self._check_femtos:
-            self.addDockWidget(Qt.RightDockWidgetArea, self.sensor_control_dock)
+        ## Add new stuff here!
+        self.addDockWidget(Qt.RightDockWidgetArea, self.sensor_control_dock)
+        liste.append(self.sensor_control_dock.toggleViewAction())
 
-        # if self._check_adwin:
-        #     self.addDockWidget(Qt.RightDockWidgetArea, self.adwin_sensor_control_dock)
+        self.addDockWidget(Qt.RightDockWidgetArea, self.vna_control_dock)
+        liste.append(self.vna_control_dock.toggleViewAction())
+        self.addDockWidget(Qt.RightDockWidgetArea, self.gate_control_dock)
+        liste.append(self.gate_control_dock.toggleViewAction())
 
+        self.addDockWidget(Qt.RightDockWidgetArea, self.heater_control_dock)
+        liste.append(self.heater_control_dock.toggleViewAction())
+        self.addDockWidget(Qt.RightDockWidgetArea, self.lockin_control_dock)
+        liste.append(self.lockin_control_dock.toggleViewAction())
 
-        # if self._check_femtos:
-        #     self.addDockWidget(Qt.RightDockWidgetArea, self.femto_control_dock)
-        # if self._check_motor:
-        #     self.addDockWidget(Qt.RightDockWidgetArea, self.motor_control_dock)
-        # if self._check_magnet:
-        #     self.addDockWidget(Qt.RightDockWidgetArea, self.magnet_control_dock)
-        # if self._check_vna:
-        #     self.addDockWidget(Qt.RightDockWidgetArea, self.vna_source_control_dock)
+        self.addDockWidget(Qt.RightDockWidgetArea, self.magnet_control_dock)
+        liste.append(self.magnet_control_dock.toggleViewAction())
+        self.addDockWidget(Qt.RightDockWidgetArea, self.motor_control_dock)
+        liste.append(self.motor_control_dock.toggleViewAction())
 
-        self.addDockWidget(Qt.LeftDockWidgetArea, self.plot_form_dock)
+        self.splitDockWidget(self.vna_control_dock, self.gate_control_dock, Qt.Horizontal)
+        self.splitDockWidget(self.heater_control_dock, self.lockin_control_dock, Qt.Horizontal)
+        self.splitDockWidget(self.magnet_control_dock, self.motor_control_dock, Qt.Horizontal)
+        
+        # self.splitDockWidget(self.gate_control_dock, self.lockin_control_dock, Qt.Horizontal)
+        # self.splitDockWidget(self.motor_control_dock, self.heater_control_dock, Qt.Horizontal)
 
-        # if self._check_motor and self._check_magnet:
-        #     self.splitDockWidget(self.magnet_control_dock, self.motor_control_dock, Qt.Horizontal)
-        if self._check_adwin=='v6' and self._check_femtos:
-            self.splitDockWidget(self.adwin_sensor_control_dock, self.femto_control_dock, Qt.Horizontal)
+        ##
 
-        liste=[]
-        liste.append(self.tree_dock.toggleViewAction())
-        if self._check_adwin == 'v6':
-            liste.append(self.adwin_sensor_control_dock.toggleViewAction())
-            
-
-        # if self._check_femtos:
-        #     liste.append(self.femto_control_dock.toggleViewAction())
-        # if self._check_motor:
-        #     liste.append(self.motor_control_dock.toggleViewAction())
-        # if self._check_magnet:
-        #     liste.append(self.magnet_control_dock.toggleViewAction())
-        # if self._check_vna:
-        #     liste.append(self.vna_source_control_dock.toggleViewAction())
-        liste.append(self.plot_form_dock.toggleViewAction())
         self.view_menu.addActions(liste)
 
     def init_signals(self):

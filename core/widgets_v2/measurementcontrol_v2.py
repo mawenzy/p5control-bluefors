@@ -1,11 +1,14 @@
+from p5control import InstrumentGateway, DataGateway
+
 from typing import Optional
-
-from qtpy.QtCore import Slot
-from qtpy.QtWidgets import QGridLayout, QWidget, QLineEdit, QVBoxLayout, QLabel
-
-from p5control import InstrumentGateway
-
+from qtpy.QtCore import Slot, Signal
+from qtpy.QtWidgets import QWidget, QVBoxLayout, QFormLayout, QHBoxLayout, QLabel, QLineEdit, QGridLayout, QToolButton
+from pyqtgraph import SpinBox
 from .utils import PlayPauseButton, StatusIndicator
+import numpy as np
+from qtpy.QtWidgets import QComboBox
+from logging import getLogger
+logger = getLogger(__name__)
 
 class MeasurementControl(QWidget):
     """
@@ -22,26 +25,20 @@ class MeasurementControl(QWidget):
         self.gw = gw
 
         # widgets
-        self.status_label = QLabel()
-        self.status_label.setText("Run:")
         self.status_indicator = StatusIndicator()
         self.btn = PlayPauseButton()
-
-        self.name_label = QLabel()
-        self.name_label.setText("Name:")
         self.name = QLineEdit()
 
         self.btn.changed.connect(self._handle_btn_change)
-        # couple status indicator to btn
         self.btn.changed.connect(self.status_indicator.set_state)
 
         # layout
         layout = QGridLayout()
-        layout.addWidget(self.status_label, 0, 0)
+        layout.addWidget(QLabel('Measure:'), 0, 0)
         layout.addWidget(self.btn, 0, 1)
-        layout.addWidget(self.status_indicator, 0, 2)
-        layout.addWidget(self.name_label, 1, 0)
-        layout.addWidget(self.name, 1, 1, 1, 2)
+        layout.addWidget(QLabel('Name:'), 0, 2)
+        layout.addWidget(self.name, 0, 3)
+        layout.addWidget(self.status_indicator, 0, 4)
 
         vlayout = QVBoxLayout(self)
         vlayout.addLayout(layout)

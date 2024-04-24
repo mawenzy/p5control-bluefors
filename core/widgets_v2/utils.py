@@ -80,3 +80,11 @@ class PlayPauseButton(QToolButton):
         self.playing = playing
         self._update_icon()
         self.changed.emit(self.playing)
+
+
+        
+class DisabledLineEdit(QLineEdit):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+        self.setReadOnly(True)
