@@ -1,9 +1,8 @@
 '''
 TODO for v2
-- VNA
-    - make just t-sweep
-    - measure reflected power
-    - very optional
+- BlueFors
+    - include sample heater
+    - still heater not required, probably optional
 - Motor
     - redesign what?
     - war eigentlich problemfrei..
@@ -11,18 +10,21 @@ TODO for v2
     - test driver
     - redesign gui?
     - check for command consistency
-- BlueFors
-    - include sample heater
-    - still heater not required, probably optional
-- Zürich
-    - check for noice floor
-    - check for voltage adder
 - Yoko
     - establish connection
     - simple gate
+- Zürich
+    - check for noice floor
+    - check for voltage adder
+- VNA
+    - optional implement: measure power over time
+    - very optional: fsweep
 - Rref Callibration
 
 GUI_v2 TODO:
+Design:
+- runde statusindikatoren
+
 test:
 - MagnetGUI
 - MotorGUI
@@ -31,7 +33,10 @@ de-dummify:
 - BlueForsAPIGUI
 - GateGUI
 - LockinGui
-- VNAGUI
+
+optional:
+- vna_time
+- vna_frequency
 
 '''
 
@@ -65,11 +70,11 @@ Device drivers
 from core.drivers_v2.adwingold2_v6 import ADwinGold2
 from core.drivers_v2.femto_v2 import Femto
 from core.drivers_v2.rref import Rref
+
 from core.drivers_v2.blueforsapi_v2 import BlueForsAPI
 from core.drivers_v2.ami430_v2 import AMI430
-from core.drivers_v2.vna_v2 import ZNB40_source
 
-from core.drivers.znb40 import ZNB40
+from core.drivers_v2.vna_v2 import ZNB40_source
 
 """
 Initialize Instrument Server
@@ -84,7 +89,7 @@ Add Devices
 inserv._add('adwin', ADwinGold2)
 inserv._add('femto', Femto)
 inserv._add('rref',  Rref, R_ref = 100e3) # 100kOhm
-# inserv._add('bluefors', BlueForsAPI) # try to remove errors of sampleheater
+inserv._add('bluefors', BlueForsAPI) # try to remove errors of sampleheater
 # inserv._add('magnet', AMI430) # untested
 
 inserv._add('vna', ZNB40_source, S = '11')
@@ -112,3 +117,7 @@ try:
 except InstrumentServerError or KeyError:
     pass
 
+try:
+    inserv._remove('vna')
+except InstrumentServerError or KeyError:
+    pass

@@ -12,7 +12,7 @@ logger = getLogger(__name__)
 
 class HeaterControl(QWidget):
     """
-    Widget to control AMI430
+    Widget to control BlueFors API
     """
     def __init__(
         self,
@@ -29,25 +29,29 @@ class HeaterControl(QWidget):
         self.exist = True
         try:
             # TODO
-            a = self.gw.heater
+            a = self.gw.bluefors
         except AttributeError:
             self.exist = False
 
         # TODO
-        self.id = self.dgw.register_callback("/status/bluefors/something", lambda arr: self._handle_status_callback(arr))
+        self.heater_id   = self.dgw.register_callback("/status/bluefors/heater/sampleheater", lambda arr: self._handle_status_callback_heater(arr))
+        self.T_sample_id = self.dgw.register_callback("/status/bluefors/temperature/sample",  lambda arr: self._handle_status_callback_Tsample(arr))
+        # self.T_mxc_id = self.dgw.register_callback("/status/bluefors/temperature/mxc", lambda arr: self._handle_status_callback_Tmxc(arr))
 
         self.status_indicator = StatusIndicator()
+        self.btn = PlayPauseButton()
         if not self.exist:
             self.status_indicator.set_disabled()
-        self.btn = PlayPauseButton()
+        else:
+            self.btn.set_playing(self.gw.bluefors.getSampleHeater())
         self.btn.changed.connect(self._handle_btn_change)
 
         self.sample_temperature = QLabel()
-        self.mxc_temperature = QLabel()
+        # self.mxc_temperature = QLabel()
 
         default_value = 0
         if self.exist:
-            default_value = self.gw.magnet.get_target_field() #TODO
+            default_value = self.gw.bluefors.getTargetSampleTemperature()
         self.target_temperature = SpinBox(value=default_value, bounds=[0, 1500])
         self.target_temperature.valueChanged.connect(self._handle_target_temperature)
 
@@ -62,9 +66,6 @@ class HeaterControl(QWidget):
         layout.addWidget(QLabel("Target: (mK)"), 2, 0)
         layout.addWidget(self.target_temperature, 2, 1, 1, 2)
 
-        layout.addWidget(QLabel("T_mxc: (mK)"), 3, 0)
-        layout.addWidget(self.mxc_temperature, 3, 1, 1, 2)
-
         layout.setColumnStretch(3,3)
 
         vlayout = QVBoxLayout(self)
@@ -73,34 +74,20 @@ class HeaterControl(QWidget):
 
         logger.debug('%s initialized.', self._name)
 
-    def _handle_target_temperature(self):
+    def _handle_status_callback_heater(self, arr):
+        logger.debug('%s._handle_status_callback_heater()', self._name)
+        self.status_indicator.set_state(arr[0][1])
+
+    def _handle_status_callback_Tsample(self, arr):
+        logger.debug('%s._handle_status_callback_Tsample()', self._name)
+        temperature = arr[0][1]
+        self.sample_temperature.setText(f"{temperature*1000:.1f}")
+
+    def _handle_target_temperature(self, value):
         logger.debug('%s._handle_target_temperature()', self._name)
-        # TODO
-
-        # self.gw.magnet.set_target_field(float(self.target_field.value())/1000)
-
-    def _handle_status_callback(self, arr):
-        logger.debug('%s._handle_status_callback()', self._name)
-        # TODO
-
-        # field = arr['field'][0]
-        # state = arr['state'][0]
-        
-        # self.actual_field.setText(f"{field*1000:.1f}")
-        
-        # if state == 1:
-        #     self.status_indicator.set_state(True)
-        #     self.btn.set_playing(True)
-        # else:
-        #     self.status_indicator.set_state(False)
-        #     self.btn.set_playing(False)
-
+        self.gw.bluefors.setTargetSampleTemperature(float(value))
 
     @Slot(bool)
     def _handle_btn_change(self, playing:bool):
         logger.debug('%s._handle_btn_change(%s)', self._name, playing)
-        # TODO
-        # if playing:
-        #     self.gw.magnet.ramp()
-        # else:
-        #     self.gw.magnet.pause()
+        self.gw.bluefors.setSampleHeater(playing)
