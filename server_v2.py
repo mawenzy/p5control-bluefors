@@ -67,6 +67,7 @@ from core.drivers_v2.femto_v2 import Femto
 from core.drivers_v2.rref import Rref
 from core.drivers_v2.blueforsapi_v2 import BlueForsAPI
 from core.drivers_v2.ami430_v2 import AMI430
+from core.drivers_v2.vna_v2 import ZNB40_source
 
 from core.drivers.znb40 import ZNB40
 
@@ -86,7 +87,7 @@ inserv._add('rref',  Rref, R_ref = 100e3) # 100kOhm
 # inserv._add('bluefors', BlueForsAPI) # try to remove errors of sampleheater
 # inserv._add('magnet', AMI430) # untested
 
-inserv._add('vna', ZNB40, '192.168.1.104', case = 'time', S = '11')
+inserv._add('vna', ZNB40_source, S = '11')
 
 
 """

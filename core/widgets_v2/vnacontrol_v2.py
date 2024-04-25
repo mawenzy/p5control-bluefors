@@ -42,16 +42,16 @@ class VNAControl(QWidget):
             
         default_value = 0
         if self.exist:
-            default_value = 10 # TODO
+            default_value = self.gw.vna.getFrequency()
             pass
         self.frequency = SpinBox(value=default_value, bounds=[0.0001, 40])
         self.frequency.valueChanged.connect(self._handle_frequency)
 
         default_value = 0
         if self.exist:
-            default_value = 0 # TODO
+            default_value = self.gw.vna.getAmplitude()
             pass
-        self.amplitude = SpinBox(value=default_value, bounds=[0, 1])
+        self.amplitude = SpinBox(value=default_value, bounds=[0.01, 1])
         self.amplitude.valueChanged.connect(self._handle_amplitude)
 
         lay = QGridLayout()
@@ -73,23 +73,21 @@ class VNAControl(QWidget):
     @Slot(bool)
     def _handle_frequency(self):
         logger.debug('%s._handle_frequency()', self._name)
-        #self.gw.vna.setTSweepFrequency(float(self.frequency.value())*1e9)
+        self.gw.vna.setFrequency(float(self.frequency.value())*1e9)
 
     def _handle_amplitude(self):
         logger.debug('%s._handle_amplitude()', self._name)
-        #self.gw.vna.setPower(float(self.power.value()))
+        self.gw.vna.setAmplitude(float(self.amplitude.value()))
 
     def _handle_btn_change(self, playing:bool):
         logger.debug('%s._handle_btn_change(%s)', self._name, playing)
-        # self.gw.vna.setOutput(playing)
-        # self.status_indicator.set_state(playing)
-        # self.btn.set_playing(playing)
+        self.gw.vna.setOutput(playing)
+        self.status_indicator.set_state(playing)
+        self.btn.set_playing(playing)
 
     def _handle_status_callback(self, arr):
         logger.debug('%s._handle_status_callback()', self._name)
         pass
-        # TODO
-        # leak current?
 
 '''
 Insert VNA functions.
