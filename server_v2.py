@@ -1,14 +1,12 @@
 '''
 TODO for v2
-- BlueFors
-    - include sample heater
-    - still heater not required, probably optional
+- ADwin
+    - status functioniert nicht richtig
 - Motor
     - redesign what?
     - war eigentlich problemfrei..
 - Magnet
     - test driver
-    - redesign gui?
     - check for command consistency
 - Yoko
     - establish connection
@@ -23,14 +21,13 @@ TODO for v2
 
 GUI_v2 TODO:
 Design:
-- runde statusindikatoren
+- ADWIN Callbacks funktionieren nicht?
 
 test:
 - MagnetGUI
 - MotorGUI
 
 de-dummify:
-- BlueForsAPIGUI
 - GateGUI
 - LockinGui
 
