@@ -49,9 +49,6 @@ class BlueForsAPI(BaseDriver):
 
         self._latest_Flow = 0
 
-        # TODO catch etch case, when devices arent
-
-
     """
     Measurement
     """
@@ -376,21 +373,21 @@ class BlueForsAPI(BaseDriver):
     ):
         logger.debug('%s._save_status()', self._name)
         if 'T50K' in status:
-            dgw.append(f"{hdf5_path}{T_STRING}/50K", status['T50K'])
+            dgw.append(f"{hdf5_path}{T_STRING}/1-50K", status['T50K'])
         if 'T4K' in status:
-            dgw.append(f"{hdf5_path}{T_STRING}/4K", status['T4K'])
+            dgw.append(f"{hdf5_path}{T_STRING}/2-4K", status['T4K'])
         if 'Tmagnet' in status:
-            dgw.append(f"{hdf5_path}{T_STRING}/magnet", status['Tmagnet'])
+            dgw.append(f"{hdf5_path}{T_STRING}/3-magnet", status['Tmagnet'])
         if 'Tstill' in status:
-            dgw.append(f"{hdf5_path}{T_STRING}/still", status['Tstill'])
+            dgw.append(f"{hdf5_path}{T_STRING}/5-still", status['Tstill'])
         if 'Tmxc' in status:
-            dgw.append(f"{hdf5_path}{T_STRING}/mxc", status['Tmxc'])
+            dgw.append(f"{hdf5_path}{T_STRING}/6-mxc", status['Tmxc'])
         if 'Tfmr' in status:
-            dgw.append(f"{hdf5_path}{T_STRING}/fmr", status['Tfmr'])
+            dgw.append(f"{hdf5_path}{T_STRING}/7-fmr", status['Tfmr'])
         if 'Tmcbj' in status:
-            dgw.append(f"{hdf5_path}{T_STRING}/mcbj", status['Tmcbj'])
+            dgw.append(f"{hdf5_path}{T_STRING}/8-mcbj", status['Tmcbj'])
         if 'Tsample' in status:
-            dgw.append(f"{hdf5_path}{T_STRING}/sample", status['Tsample'])
+            dgw.append(f"{hdf5_path}{T_STRING}/A-sample", status['Tsample'])
 
         if 'sampleheater' in status:
             dgw.append(f"{hdf5_path}{H_STRING}/sampleheater", status['sampleheater'])
