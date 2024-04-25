@@ -4,7 +4,7 @@ from typing import Optional
 from qtpy.QtCore import Slot, Signal
 from qtpy.QtWidgets import QWidget, QVBoxLayout, QFormLayout, QHBoxLayout, QLabel, QLineEdit, QGridLayout, QToolButton
 from pyqtgraph import SpinBox
-from .utils import PlayPauseButton, StatusIndicator
+from .utils import PlayPauseButton, StatusIndicator, LedIndicator
 import numpy as np
 from qtpy.QtWidgets import QComboBox
 from logging import getLogger
@@ -47,8 +47,8 @@ class AdwinFemtoControl(QWidget):
         self.V1_off = QLabel()
         self.V2_off = QLabel()
 
-        self.status_indicator_A = StatusIndicator()
-        self.status_indicator_B = StatusIndicator()
+        self.status_indicator_A = LedIndicator(warning=True)
+        self.status_indicator_B = LedIndicator(warning=True)
 
         default_value = 0
         if self.exist:
@@ -58,7 +58,7 @@ class AdwinFemtoControl(QWidget):
         
         self.R_ref = QLabel()
 
-        self.calc_status_indicator = StatusIndicator()
+        self.calc_status_indicator = LedIndicator()
         self.calc_btn = PlayPauseButton()
         self.calc_btn.changed.connect(self._handle_calc_btn_change)
         if self.exist:
@@ -70,7 +70,7 @@ class AdwinFemtoControl(QWidget):
         self.current_threshold = SpinBox(value=default_value, bounds=[0, 10])
         self.current_threshold.valueChanged.connect(self._handle_current_threshold)
 
-        self.output_status_indicator = StatusIndicator()
+        self.output_status_indicator = LedIndicator()
         self.output_btn = PlayPauseButton()
         self.output_btn.changed.connect(self._handle_output_btn_change)
         if self.exist:
@@ -82,7 +82,7 @@ class AdwinFemtoControl(QWidget):
         self.amplitude = SpinBox(value=default_value, bounds=[0, 10])
         self.amplitude.valueChanged.connect(self._handle_amplitude)
         
-        self.sweeping_status_indicator = StatusIndicator()
+        self.sweeping_status_indicator = LedIndicator()
         self.sweeping_btn = PlayPauseButton()
         self.sweeping_btn.changed.connect(self._handle_sweeping_btn_change)
         if self.exist:
@@ -204,12 +204,12 @@ class AdwinFemtoControl(QWidget):
         else:
             self.V2_off.setText(f"{arr['V2_off'][0]:3.2f}")
 
-        self.status_indicator_A.set_state(not arr['V1_ovl'])
-        self.status_indicator_B.set_state(not arr['V2_ovl'])
+        self.status_indicator_A.setChecked(not arr['V1_ovl'])
+        self.status_indicator_B.setChecked(not arr['V2_ovl'])
 
-        self.output_status_indicator.set_state(arr['output'])
-        self.sweeping_status_indicator.set_state(arr['sweeping'])
-        self.calc_status_indicator.set_state(arr['calculating'])
+        self.output_status_indicator.setChecked(arr['output'])
+        self.sweeping_status_indicator.setChecked(arr['sweeping'])
+        self.calc_status_indicator.setChecked(arr['calculating'])
 
     def _handle_rref_status_callback(self, arr):
         logger.debug('%s._handle_rref_status_callback()', self._name)

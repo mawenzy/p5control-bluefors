@@ -4,7 +4,7 @@ from typing import Optional
 from qtpy.QtCore import Slot, Signal
 from qtpy.QtWidgets import QWidget, QVBoxLayout, QFormLayout, QHBoxLayout, QLabel, QLineEdit, QGridLayout, QToolButton
 from pyqtgraph import SpinBox
-from .utils import PlayPauseButton, StatusIndicator
+from .utils import PlayPauseButton, StatusIndicator, LedIndicator
 import numpy as np
 from qtpy.QtWidgets import QComboBox
 from logging import getLogger
@@ -34,9 +34,9 @@ class MotorControl(QWidget):
 
         self.id = self.dgw.register_callback("/status/motor", lambda arr: self._handle_status_callback(arr))
 
-        self.status_indicator = StatusIndicator()
+        self.status_indicator = LedIndicator(warning=False)
         if not self.exist:
-            self.status_indicator.set_disabled()
+            self.status_indicator.setChecked(False)
         self.btn = PlayPauseButton()
         self.btn.changed.connect(self._handle_btn_change)
 
@@ -94,7 +94,7 @@ class MotorControl(QWidget):
         pos = arr['position'][0]
         self._moving = arr['moving'][0]
         # print(self.T, self._moving)
-        self.status_indicator.set_state(self._moving)
+        self.status_indicator.setChecked(self._moving)
         self.btn.set_playing(self._moving)
         self.position.setText(f"{pos:.3f}")
 

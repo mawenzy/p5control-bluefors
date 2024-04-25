@@ -296,10 +296,10 @@ class BlueForsGUIMainWindow(QMainWindow):
 
         self.splitDockWidget(self.vna_control_dock, self.gate_control_dock, Qt.Horizontal)
         self.splitDockWidget(self.heater_control_dock, self.lockin_control_dock, Qt.Horizontal)
+        # self.splitDockWidget(self.heater_control_dock, self.magnet_control_dock, Qt.Horizontal)
         self.splitDockWidget(self.magnet_control_dock, self.motor_control_dock, Qt.Horizontal)
         
         # self.splitDockWidget(self.gate_control_dock, self.lockin_control_dock, Qt.Horizontal)
-        # self.splitDockWidget(self.motor_control_dock, self.heater_control_dock, Qt.Horizontal)
 
         ##
 

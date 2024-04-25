@@ -4,7 +4,7 @@ from typing import Optional
 from qtpy.QtCore import Slot, Signal
 from qtpy.QtWidgets import QWidget, QVBoxLayout, QFormLayout, QHBoxLayout, QLabel, QLineEdit, QGridLayout, QToolButton
 from pyqtgraph import SpinBox
-from .utils import PlayPauseButton, StatusIndicator
+from .utils import PlayPauseButton, StatusIndicator, LedIndicator
 import numpy as np
 from qtpy.QtWidgets import QComboBox
 from logging import getLogger
@@ -25,7 +25,7 @@ class MeasurementControl(QWidget):
         self.gw = gw
 
         # widgets
-        self.status_indicator = StatusIndicator()
+        self.status_indicator = LedIndicator(warning=False)
         self.btn = PlayPauseButton()
         self.name = QLineEdit()
 

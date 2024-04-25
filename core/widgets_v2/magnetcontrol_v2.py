@@ -4,7 +4,7 @@ from typing import Optional
 from qtpy.QtCore import Slot, Signal
 from qtpy.QtWidgets import QWidget, QVBoxLayout, QFormLayout, QHBoxLayout, QLabel, QLineEdit, QGridLayout, QToolButton
 from pyqtgraph import SpinBox
-from .utils import PlayPauseButton, StatusIndicator
+from .utils import PlayPauseButton, StatusIndicator, LedIndicator
 import numpy as np
 from qtpy.QtWidgets import QComboBox
 from logging import getLogger
@@ -34,9 +34,9 @@ class MagnetControl(QWidget):
 
         self.id = self.dgw.register_callback("/status/magnet", lambda arr: self._handle_status_callback(arr))
 
-        self.status_indicator = StatusIndicator()
+        self.status_indicator = LedIndicator(warning=False)
         if not self.exist:
-            self.status_indicator.set_disabled()
+            self.status_indicator.setChecked(False)
         self.btn = PlayPauseButton()
         self.btn.changed.connect(self._handle_btn_change)
 
@@ -93,10 +93,10 @@ class MagnetControl(QWidget):
         self.actual_field.setText(f"{field*1000:.1f}")
         
         if state == 1:
-            self.status_indicator.set_state(True)
+            self.status_indicator.setChecked(True)
             self.btn.set_playing(True)
         else:
-            self.status_indicator.set_state(False)
+            self.status_indicator.setChecked(False)
             self.btn.set_playing(False)
 
 

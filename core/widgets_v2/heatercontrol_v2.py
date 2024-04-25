@@ -4,7 +4,7 @@ from typing import Optional
 from qtpy.QtCore import Slot, Signal
 from qtpy.QtWidgets import QWidget, QVBoxLayout, QFormLayout, QHBoxLayout, QLabel, QLineEdit, QGridLayout, QToolButton
 from pyqtgraph import SpinBox
-from .utils import PlayPauseButton, StatusIndicator
+from .utils import PlayPauseButton, StatusIndicator, LedIndicator
 import numpy as np
 from qtpy.QtWidgets import QComboBox
 from logging import getLogger
@@ -35,13 +35,13 @@ class HeaterControl(QWidget):
 
         # TODO
         self.heater_id   = self.dgw.register_callback("/status/bluefors/heater/sampleheater", lambda arr: self._handle_status_callback_heater(arr))
-        self.T_sample_id = self.dgw.register_callback("/status/bluefors/temperature/sample",  lambda arr: self._handle_status_callback_Tsample(arr))
+        self.T_sample_id = self.dgw.register_callback("/status/bluefors/temperature/A-sample",  lambda arr: self._handle_status_callback_Tsample(arr))
         # self.T_mxc_id = self.dgw.register_callback("/status/bluefors/temperature/mxc", lambda arr: self._handle_status_callback_Tmxc(arr))
 
-        self.status_indicator = StatusIndicator()
+        self.status_indicator = LedIndicator(warning=False)
         self.btn = PlayPauseButton()
         if not self.exist:
-            self.status_indicator.set_disabled()
+            self.status_indicator.setChecked(False)
         else:
             self.btn.set_playing(self.gw.bluefors.getSampleHeater())
         self.btn.changed.connect(self._handle_btn_change)
@@ -76,7 +76,7 @@ class HeaterControl(QWidget):
 
     def _handle_status_callback_heater(self, arr):
         logger.debug('%s._handle_status_callback_heater()', self._name)
-        self.status_indicator.set_state(arr[0][1])
+        self.status_indicator.setChecked(arr[0][1])
 
     def _handle_status_callback_Tsample(self, arr):
         logger.debug('%s._handle_status_callback_Tsample()', self._name)

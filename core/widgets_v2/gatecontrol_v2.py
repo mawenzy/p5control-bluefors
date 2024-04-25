@@ -4,7 +4,7 @@ from typing import Optional
 from qtpy.QtCore import Slot, Signal
 from qtpy.QtWidgets import QWidget, QVBoxLayout, QFormLayout, QHBoxLayout, QLabel, QLineEdit, QGridLayout, QToolButton
 from pyqtgraph import SpinBox
-from .utils import PlayPauseButton, StatusIndicator
+from .utils import PlayPauseButton, StatusIndicator, LedIndicator
 import numpy as np
 from qtpy.QtWidgets import QComboBox
 from logging import getLogger
@@ -34,9 +34,9 @@ class GateControl(QWidget):
 
         self.id = self.dgw.register_callback("/status/gate", lambda arr: self._handle_status_callback(arr))
 
-        self.status_indicator = StatusIndicator()
+        self.status_indicator = LedIndicator(warning=False)
         if not self.exist:
-            self.status_indicator.set_disabled()
+            self.status_indicator.setChecked(False)
         self.btn = PlayPauseButton()
         self.btn.changed.connect(self._handle_btn_change)
         if self.exist:
@@ -50,7 +50,7 @@ class GateControl(QWidget):
 
         lay = QGridLayout()
 
-        lay.addWidget(QLabel("Gating:"), 0, 0)
+        lay.addWidget(QLabel("Output:"), 0, 0)
         lay.addWidget(self.btn, 0, 1)
         lay.addWidget(self.status_indicator, 0, 2)
         lay.addWidget(QLabel("Voltage: (V)"), 1, 0)
