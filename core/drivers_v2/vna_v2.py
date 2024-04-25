@@ -136,6 +136,7 @@ class ZNB40_source(ThreadSafeBaseDriver):
     Status
     """
     def get_status(self):
+        logger.debug('%s.get_status()', self._name)
         return {
                 "time": time.time(),
                 "output": self.output,
