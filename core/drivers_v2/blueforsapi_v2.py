@@ -3,6 +3,8 @@ import time, requests
 import numpy as np
 from logging import getLogger
 
+# https://stackoverflow.com/questions/33046733/force-requests-to-use-ipv4-ipv6
+# ahhhhhhhhh!
 requests.packages.urllib3.util.connection.HAS_IPV6 = False
 
 from p5control.drivers.basedriver import BaseDriver
