@@ -52,7 +52,7 @@ class AdwinFemtoControl(QWidget):
 
         default_value = 0
         if self.exist:
-            default_value = self.gw.adwin.sample_rate
+            default_value = 0 #self.gw.adwin.sample_rate
         self.sample_rate = SpinBox(value=default_value, bounds=[1, 5e4], int=True)
         self.sample_rate.valueChanged.connect(self._handle_sample_rate)
         
@@ -193,7 +193,6 @@ class AdwinFemtoControl(QWidget):
 
     def _handle_status_callback(self, arr):
         logger.debug('%s._handle_status_callback()', self._name)
-
         if arr['V1_off'][0] < 1:
             self.V1_off.setText(f"{float(arr['V1_off'][0]*1000):3.1f}m")
         else:
@@ -207,9 +206,9 @@ class AdwinFemtoControl(QWidget):
         self.status_indicator_A.setChecked(not arr['V1_ovl'])
         self.status_indicator_B.setChecked(not arr['V2_ovl'])
 
-        self.output_status_indicator.setChecked(arr['output'])
-        self.sweeping_status_indicator.setChecked(arr['sweeping'])
-        self.calc_status_indicator.setChecked(arr['calculating'])
+        self.output_status_indicator.setChecked(arr['output'][0])
+        self.sweeping_status_indicator.setChecked(arr['sweeping'][0])
+        self.calc_status_indicator.setChecked(arr['calculating'][0])
 
     def _handle_rref_status_callback(self, arr):
         logger.debug('%s._handle_rref_status_callback()', self._name)
@@ -217,12 +216,3 @@ class AdwinFemtoControl(QWidget):
             self.R_ref.setText(f"{arr['R_ref'][0]/1000:.1f}k")
         else:
             self.R_ref.setText(f"{arr['R_ref'][0]:.2f}")
-
-
-
-    # def _handle_status_callback(self, arr):
-    #     logger.debug('%s._handle_status_callback()', self._name)
-    #     overload_A = not arr['overload_A'][0]
-    #     overload_B = not arr['overload_B'][0]
-    #     self.status_indicator_A.set_state(overload_A)
-    #     self.status_indicator_B.set_state(overload_B)
