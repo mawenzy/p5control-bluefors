@@ -189,7 +189,6 @@ class Femto(BaseDriver):
     def get_data(self):
         logger.info('%s.get_data()', self._name)
         return {
-            "time": time.time(),
             "amp_A": self.amp_A,
             "amp_B": self.amp_B,
         }
