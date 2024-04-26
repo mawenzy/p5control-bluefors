@@ -25,7 +25,12 @@ class Rref(BaseDriver):
         name for this instance
     """
 
-    def __init__(self, name: str, R_ref = None):
+    def __init__(
+            self,
+            name: str,
+            R_ref = None
+            ):
+        logger.info('%s.__init__()', name)
         self._name = name
 
         if R_ref is None:
@@ -47,9 +52,8 @@ class Rref(BaseDriver):
 
     def get_status(self):
         """Returns the current amplitude and frequency."""
-        logger.debug("%s.get_status()", self._name)
+        logger.info("%s.get_status()", self._name)
         return {
-            "time": time.time(),
             "R_ref": self.R_ref,
         }
 
@@ -58,25 +62,9 @@ class Rref(BaseDriver):
             }
     
     def set_rref(self, rref):
-        logger.debug("%s.set_rref()", self._name)
+        logger.info("%s.set_rref()", self._name)
         self.R_ref = rref
 
     def get_rref(self):
-        logger.debug("%s.get_rref()", self._name)
+        logger.info("%s.get_rref()", self._name)
         return self.R_ref
-        
-    
-    # def _save_data(
-    #     self,
-    #     hdf5_path: str,
-    #     array,
-    #     dgw: DataGateway,
-    #     **kwargs
-    # ):
-    #     if self.calculating:
-    #         try:
-    #             still_path = f"{STATUS_NAME}/{BF_NAME}/{T_NAME}/{STILL_NAME}"
-    #             T = dgw.get_data(still_path, field='T', indices = slice(-2, -1, 1))[0]
-    #             self.R_ref = 53000
-    #         except KeyError:
-    #             print('T not found.')

@@ -27,43 +27,16 @@ class AMI430(BaseDriver):
             address: str = '192.168.1.103',
             refresh_delay: float = 0.5,
         ):
-        """Init the device and change constant settings, 
-        for example termination of requests and replies. After this, call
-        `self.open()` to open the connection to the device
-
-        **Inheritance**: parameter `name` is required, `InstrumentServer._add` creates an instance
-        by calling class_ref(name, \*args, \*\*kwargs). This is done such that
-        different instances of the driver can be dinstinguished if you own an 
-        instrument multiple times
-
-        Parameters
-        ----------
-        name : str
-            name for the device this driver is for
-        address : str
-            visa adress of the resource
-        refresh_delay : float, default = 0.5
-            time spend asleep between self.get_data() calls in the measuremet thread
-        """
+        logger.info('%s.__init__()', name)
         self._name = name
         self._address = address
         self._inst = None
-
         self.refresh_delay = refresh_delay
-
-        # connect to device
         self.open()
         
     def open(self):
-        """Open connection to the device.
-        
-        Overwritten to add the termination characters and reset the device after it has been
-        connected.
-        """
-
-
+        logger.info('%s.open()', self._name)
         self.lock = Lock()
-
         rm = ResourceManager()
         self._inst= rm.open_resource(f'TCPIP::{self._address}::7180::SOCKET')
 
@@ -98,26 +71,26 @@ class AMI430(BaseDriver):
         self.pause() 
 
     def reset(self):
-        logger.debug('%s.reset()', self._name)
+        logger.info('%s.reset()', self._name)
         with self.lock:
             self._inst.write('*RST')
             self._inst.write('*CLS') # clear event register, probably not usable
             self._inst.query('*OPC?')
 
     def remote_control(self):
-        logger.debug('%s.remote_control()', self._name)
+        logger.info('%s.remote_control()', self._name)
         with self.lock:
             self._inst.write('SYSTem:REMote')
             self._inst.query('*OPC?')
 
     def local_control(self):
-        logger.debug('%s.local_control()', self._name)
+        logger.info('%s.local_control()', self._name)
         with self.lock:
             self._inst.write('SYSTem:LOCal')
             self._inst.query('*OPC?')
 
     def setup_instrument(self):
-        logger.debug('%s.setup_instrument()', self._name)
+        logger.info('%s.setup_instrument()', self._name)
         with self.lock:
             # Each 4th write should be interrupted with *OPC?
             # units tesla/min
@@ -148,32 +121,28 @@ class AMI430(BaseDriver):
         self._field = 0.0
 
     def close(self):
-        """Close connection to the device and reset self.._inst.variable to None
-        
-        Raises
-        ------
-        BaseDriverError
-            if no connection exists which can be closed
-        """
+        logger.info('%s.close()', self._name)
         if not self._inst:
             raise BaseDriverError(
                 f'connection to device {self._name} cannot be closed since it is not open.'
             )
 
-        logger.info('closing resource "%s" at address "%s"', self._name, self._address)
         # self.goto_zero()
         self.local_control()
         self._inst.close()
         self._inst= None
+        logger.info('closing resource "%s" at address "%s"', self._name, self._address)
 
     def start_measuring(self):
+        logger.info('%s.start_measuring()', self._name)
         self._running = True
     
     def stop_measuring(self):
+        logger.info('%s.stop_measuring()', self._name)
         self._running = False
 
     def get_status(self):
-        logger.debug('%s.get_status()', self._name)
+        logger.info('%s.get_status()', self._name)
         now = time.time()
         field = self.get_status_field()
         state = self.get_state()
@@ -190,7 +159,7 @@ class AMI430(BaseDriver):
         return status
 
     def get_data(self):
-        logger.debug('%s.get_data()', self._name)
+        logger.info('%s.get_data()', self._name)
         return {
             "time": float(time.time()),
             "field": float(self.get_field()),
@@ -201,19 +170,20 @@ class AMI430(BaseDriver):
     '''
     
     def get_field(self):
-        logger.debug('%s.get_field()', self._name)
+        logger.info('%s.get_field()', self._name)
         with self.lock:
             field = float(self._inst.query('FIELD:MAGnet?'))  
         self._field = field
         return field
     
     def get_status_field(self):
+        logger.info('%s.get_status_field()', self._name)
         if not self._running:
             self.get_field()
         return self._field
         
     def ramp(self):
-        logger.debug('%s.ramp()', self._name)
+        logger.info('%s.ramp()', self._name)
         if self._target==0:
             with self.lock:
                 self.goto_zero()
@@ -224,19 +194,20 @@ class AMI430(BaseDriver):
         self._state = True
 
     def pause(self):
-        logger.debug('%s.pause()', self._name)
+        logger.info('%s.pause()', self._name)
         with self.lock:
             self._inst.write('PAUSE')
             self._inst.query('*OPC?')
         self._state = False
         
     def goto_zero(self):
-        logger.debug('%s.goto_zero()', self._name)
+        logger.info('%s.goto_zero()', self._name)
         with self.lock:
             self._inst.write('ZERO')
             self._inst.query('*OPC?')
 
     def get_state(self):
+        logger.info('%s.get_state()', self._name)
 
         #  1 RAMPING to target field/current
         #  2 HOLDING at the target field/current
@@ -257,7 +228,7 @@ class AMI430(BaseDriver):
         return state
 
     def set_rate(self, rate: float):
-        logger.debug('%s.set_rate()', self._name)
+        logger.info('%s.set_rate()', self._name)
         with self.lock:
             if 0 < rate <= self._seg_rate_upper:
                 self._inst.write('CONFigure:RAMP:RATE:SEGments 1')
@@ -277,11 +248,11 @@ class AMI430(BaseDriver):
         self._rate = rate
 
     def get_rate(self):
-        logger.debug('%s.get_rate()', self._name)
+        logger.info('%s.get_rate()', self._name)
         return float(self._rate)
 
     def set_target_field(self, target: float):
-        logger.debug('%s.set_target_field(%f)', self._name, target)
+        logger.info('%s.set_target_field(%f)', self._name, target)
         self._target = target
 
         rate = self.get_rate()
@@ -300,7 +271,7 @@ class AMI430(BaseDriver):
             self._target = float(self._inst.query(f'FIELD:TARGet?'))
 
     def get_target_field(self):
-        logger.debug('%s.get_target_field()', self._name)
+        logger.info('%s.get_target_field()', self._name)
         target = self._target
         return float(target)
     

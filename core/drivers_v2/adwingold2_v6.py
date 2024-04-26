@@ -28,6 +28,7 @@ RREF_NAME = 'R_ref'
 
 class ADwinGold2(BaseDriver):
     def __init__(self, name: str):
+        logger.info('%s.__init__()', name)
         self._name = name
         self.version = 'v6'
         self.processor_rate = 2e5
@@ -58,7 +59,7 @@ class ADwinGold2(BaseDriver):
         self.V2_ovl = False
 
     def open(self):
-        """Opens connection to ADwin."""
+        logger.info('%s.open()', self._name)
         self.inst = ADwin()
         self.inst.Boot(os.path.join(os.path.dirname(__file__), "external/ADwin11.btl"))
         self.inst.Load_Process(os.path.join(os.path.dirname(__file__), "external/adwingold2_v6.TB0"))
@@ -67,15 +68,13 @@ class ADwinGold2(BaseDriver):
         logger.debug("%s.open(), status: %s", self._name, status)
 
     def close(self):
-        """Just logs the call to debug."""
         logger.debug(f'{self._name}.close()')
 
     """
     Status measurement
     """
     def get_status(self):
-        """Returns the current averaging and ranges."""
-        logger.debug('%s.get_status()', self._name)
+        logger.info('%s.get_status()', self._name)
 
         V1_ovl = self.V1_ovl
         V2_ovl = self.V2_ovl
@@ -100,15 +99,15 @@ class ADwinGold2(BaseDriver):
     Measurement
     """
     def start_measuring(self):
-        """Start the measurement. Clear FIFOs
-        """
-        logger.debug('%s.start_measuring()', self._name)
+        logger.info('%s.start_measuring()', self._name)
+
+        # Start the measurement. Clear FIFOs
         self._time_offset = time.time()
         with self.lock:
             self.inst.Set_Par(Index=8, Value=1)
 
     def get_data(self):
-        logger.debug('%s.get_data()', self._name)     
+        logger.info('%s.get_data()', self._name)     
         with self.lock:
             l = [
                 self.inst.Fifo_Full(FifoNo=1),
@@ -152,6 +151,7 @@ class ADwinGold2(BaseDriver):
         dgw: DataGateway,
         **kwargs
     ):
+        logger.info('%s._save_data()', self._name)
         # Take care of empty array
         if array is None:
             return
@@ -293,83 +293,83 @@ class ADwinGold2(BaseDriver):
         self.setCalculating(False)
         
     def setOutput(self, value:bool):
-        logger.debug('%s.setOutput(%i)', self._name, value)
+        logger.info('%s.setOutput(%i)', self._name, value)
         with self.lock:
             self.inst.Set_Par(Index=11, Value=int(value))
         self.output = self.getOutput()
 
     def getOutput(self):
-        logger.debug('%s.getOutput()', self._name)
+        logger.info('%s.getOutput()', self._name)
         with self.lock:
             return bool(self.inst.Get_Par(11))
         
     def setSweeping(self, value:bool):
-        logger.debug('%s.setSweeping(%i)', self._name, value)
+        logger.info('%s.setSweeping(%i)', self._name, value)
         with self.lock:
             self.inst.Set_Par(Index=10, Value=int(value))
         self.sweeping = self.getSweeping()
 
     def getSweeping(self):
-        logger.debug('%s.getSweeping()', self._name)
+        logger.info('%s.getSweeping()', self._name)
         with self.lock:
             return bool(self.inst.Get_Par(10))
 
     def setCalculating(self, value:bool):
-        logger.debug('%s.setCalculating(%i)', self._name, value)
+        logger.info('%s.setCalculating(%i)', self._name, value)
         self.calculating = value
 
     def getCalculating(self):
-        logger.debug('%s.getCalculating()', self._name)
+        logger.info('%s.getCalculating()', self._name)
         return self.calculating
 
     def setAveraging(self, value:int):
-        logger.debug('%s.setAveraging(%i)', self._name, value)
+        logger.info('%s.setAveraging(%i)', self._name, value)
         with self.lock:
             self.inst.Set_Par(Index=9, Value=int(value))
         self.averaging = self.getAveraging()
         self.sample_rate = self.processor_rate/self.averaging
 
     def getAveraging(self):
-        logger.debug('%s.getAveraging()', self._name)
+        logger.info('%s.getAveraging()', self._name)
         with self.lock:
             return int(self.inst.Get_Par(9))
         
     def setSampleRate(self, value:float):
-        logger.debug('%s.setSampleRate()', self._name)
+        logger.info('%s.setSampleRate()', self._name)
         self.setAveraging(self.processor_rate/value)
 
     def getSampleRate(self):
-        logger.debug('%s.getSampleRate()', self._name)
+        logger.info('%s.getSampleRate()', self._name)
         return self.processor_rate/self.getAveraging()
 
             
     def setAmplitude(self, value:float):
-        logger.debug('%s.setAmplitude(%i)', self._name, value)
+        logger.info('%s.setAmplitude(%i)', self._name, value)
         with self.lock:
             self.inst.Set_FPar(Index=14, Value=value)
         self.amplitude = self.getAmplitude()
 
     def getAmplitude(self):
-        logger.debug('%s.getAmplitude()', self._name)
+        logger.info('%s.getAmplitude()', self._name)
         with self.lock:
             return float(self.inst.Get_FPar(14))
         
     def setPeriod(self, value:float):
-        logger.debug('%s.setPeriod(%i)', self._name, value)
+        logger.info('%s.setPeriod(%i)', self._name, value)
         with self.lock:
             self.inst.Set_FPar(Index=13, Value=value)
         self.period = self.getPeriod()
 
     def getPeriod(self):
-        logger.debug('%s.getPeriod()', self._name)
+        logger.info('%s.getPeriod()', self._name)
         with self.lock:
             return float(self.inst.Get_FPar(13))
         
     def setCurrentThreshold(self, value:float):
-        logger.debug('%s.setCurrentThreshold()', self._name)
+        logger.info('%s.setCurrentThreshold()', self._name)
         self.current_threshold = value
 
     def getCurrentThreshold(self):
-        logger.debug('%s.getCurrentThreshold()', self._name)
+        logger.info('%s.getCurrentThreshold()', self._name)
         return self.current_threshold
     

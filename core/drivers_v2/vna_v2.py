@@ -37,6 +37,7 @@ class ZNB40_source(ThreadSafeBaseDriver):
                  address='192.168.1.104', 
                  S = '11',
                  res: float = 0.1):
+        logger.info('%s.__init__()', name)
         
         self._name = name
         self._address = address
@@ -50,10 +51,6 @@ class ZNB40_source(ThreadSafeBaseDriver):
         self.frequency = 0.0
         self.amplitude = 0.01
         self.power = -30.0
-
-        # self.measuring = False
-        # self.points = 0
-        # self.bandwith = 0.0
   
         self.open()
         self.initialize()
@@ -63,7 +60,7 @@ class ZNB40_source(ThreadSafeBaseDriver):
         self.setAmplitude(self.amplitude)
 
     def open(self):
-        logger.debug('%s.open()', self._name)
+        logger.info('%s.open()', self._name)
         rm = pyvisa.ResourceManager()
         self._inst = rm.open_resource(f'TCPIP0::{self._address}::inst0::INSTR')  
         self._inst.timeout=3e4 
@@ -81,11 +78,12 @@ class ZNB40_source(ThreadSafeBaseDriver):
         return output
         
     def message(self, message:str="DON'T TOUCH\nRemote test running..."):
-        logger.debug('%s.message()', self._name)
+        logger.info('%s.message()', self._name)
         self.write(f'SYST:USER:DISP:TITL "{message}"')
         # Write message on screen
 
     def initialize(self):
+        logger.info('%s.initialize()', self._name)
         # reset the device
         self.write('*RST')
         # delete all old traces
@@ -114,7 +112,7 @@ class ZNB40_source(ThreadSafeBaseDriver):
         # self.message()
 
     def close(self):
-        logger.debug('%s.close()', self._name)
+        logger.info('%s.close()', self._name)
         # Turn to Local
         self.write('@LOC')
         # Turn of Key Lock
@@ -136,62 +134,58 @@ class ZNB40_source(ThreadSafeBaseDriver):
     Status
     """
     def get_status(self):
-        logger.debug('%s.get_status()', self._name)
+        logger.info('%s.get_status()', self._name)
         return {
-                "time": time.time(),
                 "output": self.output,
                 "frequency": self.frequency,
                 "amplitude": self.amplitude,
                 "power": self.power,
-                # "measuring": self.measuring,
-                # "points": self.points,
-                # "bandwidth": self.bandwith,
             }
 
     """
     Common Properties
     """
     def setOutput(self, output):
-        logger.debug('%s.setOutput()', self._name)
+        logger.info('%s.setOutput()', self._name)
         self.write(f'OUTput{self.output_channel}:STATe {int(output)}')
         self.getOutput()
 
     def getOutput(self):
-        logger.debug('%s.getOutput()', self._name)
+        logger.info('%s.getOutput()', self._name)
         output = bool(int(self.query(f'OUTput{self.output_channel}:STATe?')))
         self.output = output
         return output
 
     def setFrequency(self, frequency):
-        logger.debug('%s.setFrequency()', self._name)
+        logger.info('%s.setFrequency()', self._name)
         self.write(f'SOUR{self.output_channel}:FREQ:FIX {frequency}')
         self.getFrequency()
 
     def getFrequency(self):
-        logger.debug('%s.getFrequency()', self._name)
+        logger.info('%s.getFrequency()', self._name)
         frequency = float(self.query(f'SOUR{self.output_channel}:FREQ:FIX?'))
         self.frequency = frequency
         return frequency  
 
     def setPower(self, value):
-        logger.debug('%s.setPower()', self._name)
+        logger.info('%s.setPower()', self._name)
         self.write(f"SOURce{self.output_channel}:POWer {value} dBm")
         self.getPower()
 
     def getPower(self):
-        logger.debug('%s.getPower()', self._name)
+        logger.info('%s.getPower()', self._name)
         power = float(self.query(f"SOURce{self.output_channel}:POWer?"))
         self.power = power
         self.amplitude = 10**(power/20-.5)
         return power
     
     def setAmplitude(self, amplitude):
-        logger.debug('%s.setAmplitude()', self._name)
+        logger.info('%s.setAmplitude()', self._name)
         self.setPower(10*np.log10(amplitude**2*10))
         pass
     
     def getAmplitude(self):
-        logger.debug('%s.getAmplitude()', self._name)
+        logger.info('%s.getAmplitude()', self._name)
         self.getPower()
         return self.amplitude
 

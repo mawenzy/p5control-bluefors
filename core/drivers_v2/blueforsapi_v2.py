@@ -21,7 +21,7 @@ logger = getLogger(__name__)
 
 class BlueForsAPI(BaseDriver):
     def __init__(self, name, address='localhost:49099'):
-        logger.debug('%s._handle_target_temperature()', name)
+        logger.info('%s.__init__()', name)
         self._name = name
         self._address = address
         self.refresh_delay = 1/13.7 /2
@@ -53,7 +53,7 @@ class BlueForsAPI(BaseDriver):
     Measurement
     """
     def get_data(self):
-        logger.debug(f'{self._name}.get_data()')
+        logger.info(f'{self._name}.get_data()')
         req = requests.get(
                     self.url,
                     timeout=3,
@@ -78,7 +78,7 @@ class BlueForsAPI(BaseDriver):
     """
 
     def setSampleHeater(self, heating:bool):
-        logger.debug('%s.setSampleHeater()', self._name)
+        logger.info('%s.setSampleHeater()', self._name)
         json = {
             "data": {
                 "driver.lakeshore.settings.outputs.sample.enable_ramping": {"content": {"value": int(heating)}},
@@ -88,6 +88,7 @@ class BlueForsAPI(BaseDriver):
         requests.post(self.url, json=json)
 
     def getSampleHeater(self):
+        logger.info(f'{self._name}.getSampleHeater()')
         req = requests.get(
                     self.url,
                     timeout=3,
@@ -104,7 +105,7 @@ class BlueForsAPI(BaseDriver):
 
 
     def setTargetSampleTemperature(self, setpoint:float):
-        logger.debug('%s.setTargetSampleTemperature()', self._name)
+        logger.info('%s.setTargetSampleTemperature()', self._name)
         json = {
             "data": {
                 "driver.lakeshore.settings.outputs.sample.setpoint": {"content": {"value": setpoint}},
@@ -114,6 +115,7 @@ class BlueForsAPI(BaseDriver):
         requests.post(self.url, json=json)
 
     def getTargetSampleTemperature(self):
+        logger.info(f'{self._name}.getTargetSampleTemperature()')
         req = requests.get(
                     self.url,
                     timeout=3,
@@ -132,7 +134,7 @@ class BlueForsAPI(BaseDriver):
     Status measurement
     """
     def get_status(self):
-        logger.debug('%s.get_status()', self._name)
+        logger.info('%s.get_status()', self._name)
         req = requests.get(
                     self.url,
                     timeout=3,
@@ -371,7 +373,7 @@ class BlueForsAPI(BaseDriver):
         status,
         dgw
     ):
-        logger.debug('%s._save_status()', self._name)
+        logger.info('%s._save_status()', self._name)
         if 'T50K' in status:
             dgw.append(f"{hdf5_path}{T_STRING}/1-50K", status['T50K'])
         if 'T4K' in status:

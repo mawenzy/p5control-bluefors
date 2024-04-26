@@ -23,6 +23,7 @@ add_dll_directory("C:\\Users\\BlueFors\\Documents\\p5control-bluefors\\core\\dri
 
 class Luci10:
     def __init__(self, name="LUCY_10"):
+        logger.info('%s.__init__()', name)
         self.name = name
         self.index = 1
 
@@ -79,6 +80,7 @@ class FemtoWorker(Thread):
         index=1,
         delay=.1,
     ):
+        logger.info('%s.__init__()', name)
         super().__init__()
 
         self._name = name
@@ -126,7 +128,6 @@ class FemtoWorker(Thread):
             self.luci.led_off()
 
             sleep(self.delay)
-
         logger.info('%s stopped.', self._name)
 
 class Femto(BaseDriver):
@@ -135,6 +136,7 @@ class Femto(BaseDriver):
             name: str, 
             config='AB'
             ):
+        logger.info('%s.__init__()', name)
         self._name = name
         if (config == 'AB') or (config == 'BA'):
             self.config = config
@@ -143,7 +145,7 @@ class Femto(BaseDriver):
         self.open()
 
     def open(self):
-        logger.debug(f'{self._name}.open()')
+        logger.info('%s.open()', self._name)
 
         self.femtoThread = FemtoWorker(
             name=f"{self._name}Worker", 
@@ -167,7 +169,7 @@ class Femto(BaseDriver):
         self.set_amp(10, 'B')
 
     def close(self):
-        logger.debug(f'{self._name}.close()')
+        logger.info('%s.close()', self._name)
 
         while not self.femtoThread.exit_request.is_set():
             self.femtoThread.exit_request.set()
@@ -175,6 +177,7 @@ class Femto(BaseDriver):
         self.femtoThread.luci.close()
 
     def get_status(self):
+        logger.info('%s.get_status()', self._name)
         return {
             "amp_A": self.amp_A,
             "amp_B": self.amp_B,
@@ -184,7 +187,7 @@ class Femto(BaseDriver):
     
 
     def get_data(self):
-        logger.debug(f'{self._name}.get_data()')
+        logger.info('%s.get_data()', self._name)
         return {
             "time": time.time(),
             "amp_A": self.amp_A,
@@ -192,6 +195,7 @@ class Femto(BaseDriver):
         }
     
     def set_dc(self, dc: bool = True):
+        logger.info('%s.set_dc()', self._name)
         if dc:
             self.femtoThread.dc.set()
         else:
@@ -199,9 +203,11 @@ class Femto(BaseDriver):
         self.dc = dc
 
     def get_dc(self):
+        logger.info('%s.get_dc()', self._name)
         return self.dc
     
     def set_low_noise(self, low_noise: bool = True):
+        logger.info('%s.set_low_noise()', self._name)
         if low_noise:
             self.femtoThread.low_noise.set()
         else:
@@ -209,6 +215,7 @@ class Femto(BaseDriver):
         self.low_noise = low_noise
 
     def get_low_noise(self):
+        logger.info('%s.get_low_noise()', self._name)
         return self.low_noise
     
     def set_amp(
@@ -216,6 +223,7 @@ class Femto(BaseDriver):
             amp: int = 10, 
             channel = 'A', 
             ):
+        logger.info('%s.set_amp()', self._name)
         
         if self.config == 'AB':
             if channel == 'A':
@@ -237,6 +245,7 @@ class Femto(BaseDriver):
                 logger.warning("%s.set_amp(%s, channel=%s) channel must be either 'A' or 'B'.", self._name, amp, channel)
 
     def get_amp(self, channel='A'):
+        logger.info('%s.get_amp()', self._name)
         if channel == 'A':
             return self.amp_A     
         elif channel == 'B':
@@ -245,6 +254,7 @@ class Femto(BaseDriver):
             logger.warning("%s.set_amp(%s, channel=%s) channel must be either 'A' or 'B'.", self._name, amp, channel)
     
     def set_amplification_A(self, amp: int = 10):
+        logger.info('%s.set_amplification_A()', self._name)
         if amp == 10000:
             self.femtoThread.lsb_A.set()
             self.femtoThread.msb_A.set()
@@ -262,6 +272,7 @@ class Femto(BaseDriver):
             self.set_amplification_A(10)
     
     def set_amplification_B(self, amp: int = 10):
+        logger.info('%s.set_amplification_B()', self._name)
         if amp == 10000:
             self.femtoThread.lsb_B.set()
             self.femtoThread.msb_B.set()
