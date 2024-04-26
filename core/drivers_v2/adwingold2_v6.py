@@ -49,8 +49,8 @@ class ADwinGold2(BaseDriver):
         self.amplitude = self.getAmplitude()
         self.period = self.getPeriod()
 
-        self.V1_off = np.nan
-        self.V2_off = np.nan
+        self.V1_off = 0
+        self.V2_off = 0
 
         self.calculating = True
         self.current_threshold = 0
@@ -198,8 +198,13 @@ class ADwinGold2(BaseDriver):
             try:
                 offset_path = f"{hdf5_path}/{OFFSET_NAME}"
                 offset = dgw.get_data(offset_path, indices = slice(-2,-1,1))
-                V1_off = offset['V1_off']
-                V2_off = offset['V2_off']
+                if offset.shape == (0,):
+                    # covert edge case when calc and output running and measurement wird dann eingeschalten
+                    V1_off = 0
+                    V2_off = 0
+                else:
+                    V1_off = offset['V1_off']
+                    V2_off = offset['V2_off']
             except KeyError:
                 logger.warning("%s._save_data() no V_off found!")
                 V1_off = 0
