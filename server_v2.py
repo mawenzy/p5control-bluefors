@@ -1,7 +1,5 @@
 '''
 TODO for v2
-- ADwin
-    - status functioniert nicht richtig
 - Motor
     - redesign what?
     - war eigentlich problemfrei..
@@ -20,9 +18,6 @@ TODO for v2
 - Rref Callibration
 
 GUI_v2 TODO:
-Design:
-- ADWIN Callbacks funktionieren nicht?
-
 test:
 - MagnetGUI
 - MotorGUI
@@ -86,10 +81,14 @@ Add Devices
 inserv._add('adwin', ADwinGold2)
 inserv._add('femto', Femto)
 inserv._add('rref',  Rref, R_ref = 100e3) # 100kOhm
+
 inserv._add('bluefors', BlueForsAPI) # try to remove errors of sampleheater
 # inserv._add('magnet', AMI430) # untested
+# motor
 
 inserv._add('vna', ZNB40_source, S = '11')
+# gate
+# lockin
 
 
 """
