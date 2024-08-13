@@ -1,8 +1,9 @@
 # setup logging
 import logging
+from time import time
 logger = logging.getLogger(__name__)
 logging.basicConfig(
-    filename='BlueForsGUI.log',
+    filename=f'.logs/BlueForsGUI_{time()}.log',
     level=logging.DEBUG,
     filemode='w', # overwrites logs every time this script is started
     format='%(asctime)s.%(msecs)03d %(levelname)-8s %(thread)6d %(name)-30s %(funcName)-20s %(message)s',
