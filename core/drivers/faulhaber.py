@@ -27,6 +27,9 @@ class Faulhaber(BaseDriver):
     def __init__(self, name: str):
         # super().__init__()
         
+        # maximum value is 1800000000
+        # for position and limit
+
         self.refresh_delay = 0.1
 
         self._name = name
@@ -212,6 +215,8 @@ class Faulhaber(BaseDriver):
 
     def write_global_position_to_config(self, position):
         motor_dict = load_from_config('motor')
+        # maximum value is 1800000000
+
         my_dict = {
             'motor': {
                 'position': position,
