@@ -31,18 +31,30 @@ class AdwinFemtoControl(QWidget):
         except AttributeError:
             self.exist = False
 
-        self.id = self.dgw.register_callback("/status/adwin", lambda arr: self._handle_status_callback(arr))
-        self.id2 = self.dgw.register_callback("/status/rref", lambda arr: self._handle_rref_status_callback(arr))
+        self.femto_exist = True
+        try:
+            a = self.gw.femto
+        except AttributeError:
+            self.femto_exist = False
+
+        if self.exist:
+            self.id = self.dgw.register_callback("/status/adwin", lambda arr: self._handle_status_callback(arr))
+            self.id2 = self.dgw.register_callback("/status/rref", lambda arr: self._handle_rref_status_callback(arr))
 
         self.amps = []
+        items = ['20 db / x10   ', '40 db / x100  ', '60 db / x1000 ', '80 db / x10000']
+        items = ['x10   ', 'x100  ', 'x1000 ', 'x10000']
+        handlers = [self.onChanged_ch1, self.onChanged_ch2]
+        channels = ['A', 'B']
         for i in range(2):
             self.amps.append(QComboBox())
-            self.amps[i].addItem('20 db / x10   ')
-            self.amps[i].addItem('40 db / x100  ')
-            self.amps[i].addItem('60 db / x1000 ')
-            self.amps[i].addItem('80 db / x10000')
-        self.amps[0].activated.connect(self.onChanged_ch1)
-        self.amps[1].activated.connect(self.onChanged_ch2)
+            for item in items:
+                self.amps[i].addItem(item)
+            self.amps[i].activated.connect(handlers[i])
+            default_value = 0
+            if self.femto_exist:
+                default_value = self.gw.femto.get_amp(channels[i])
+            self.amps[i].setCurrentIndex(int(np.log10(default_value))-1)
 
         self.V1_off = QLabel()
         self.V2_off = QLabel()
@@ -52,8 +64,8 @@ class AdwinFemtoControl(QWidget):
 
         default_value = 0
         if self.exist:
-            default_value = 0 #self.gw.adwin.sample_rate
-        self.sample_rate = SpinBox(value=default_value, bounds=[1, 5e4], int=True)
+            default_value = self.gw.adwin.sample_rate
+        self.sample_rate = SpinBox(value=default_value, bounds=[1, 5e4], int=False)
         self.sample_rate.valueChanged.connect(self._handle_sample_rate)
         
         self.R_ref = QLabel()
@@ -66,9 +78,9 @@ class AdwinFemtoControl(QWidget):
 
         default_value = 0
         if self.exist:
-            default_value = self.gw.adwin.getCurrentThreshold()
-        self.current_threshold = SpinBox(value=default_value, bounds=[0, 10])
-        self.current_threshold.valueChanged.connect(self._handle_current_threshold)
+            default_value = self.gw.adwin.getSeriesResistance()
+        self.series_resistance = SpinBox(value=default_value, bounds=[0, 6e8])
+        self.series_resistance.valueChanged.connect(self._handle_series_resistance)
 
         self.output_status_indicator = LedIndicator()
         self.output_btn = PlayPauseButton()
@@ -128,8 +140,8 @@ class AdwinFemtoControl(QWidget):
         lay.addWidget(self.calc_btn, 3, 1)
         lay.addWidget(self.calc_status_indicator, 3, 4)
 
-        lay.addWidget(QLabel("Threshold: (A)"), 3, 2)
-        lay.addWidget(self.current_threshold, 3, 3)
+        lay.addWidget(QLabel("R_series: (Ohm)"), 3, 2)
+        lay.addWidget(self.series_resistance, 3, 3)
 
         lay.addWidget(QLabel("Output:"), 4, 0)
         lay.addWidget(self.output_btn, 4, 1)
@@ -187,9 +199,9 @@ class AdwinFemtoControl(QWidget):
         logger.debug('%s._handle_calc_btn_change(%s)', self._name, playing)
         self.gw.adwin.setCalculating(playing)
 
-    def _handle_current_threshold(self):
-        logger.debug('%s._handle_current_threshold()', self._name)
-        self.gw.adwin.setCurrentThreshold(float(self.current_threshold.value()))
+    def _handle_series_resistance(self):
+        logger.debug('%s._handle_series_resistance()', self._name)
+        self.gw.adwin.setSeriesResistance(float(self.series_resistance.value()))
 
     def _handle_status_callback(self, arr):
         logger.debug('%s._handle_status_callback()', self._name)
