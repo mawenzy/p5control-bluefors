@@ -55,13 +55,13 @@ Init:
   
   ' Min ProcessDelay that is Prime
   ProcessDelay = 1500 ' 10ns
-  ' 14900 ns delay => 201.342kHz, 4.96667us
+  ' 15000 ns delay => 200 kHz, 5 us
   
   ' Start Measuring / Clear FIFO
   Par_8  = 0
   
   ' Averaging Factor  
-  Par_9  = 50
+  Par_9  = 1459
   
   ' Output Values
   Par_10 = 0 ' if Sweeping

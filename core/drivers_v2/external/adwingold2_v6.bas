@@ -61,7 +61,7 @@ Init:
   Par_8  = 0
   
   ' Averaging Factor  
-  Par_9  = 50
+  Par_9  = 1459
   
   ' Output Values
   Par_10 = 0 ' if Sweeping
