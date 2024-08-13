@@ -1,8 +1,9 @@
 # setup logging
 import logging
+from time import time
 logger = logging.getLogger(__name__)
 logging.basicConfig(
-    filename='GUI_v2.log',
+    filename=f'.data/GUI_v2.log',
     level=logging.DEBUG,
     filemode='w', # overwrites logs every time this script is started
     format='%(asctime)s.%(msecs)03d %(levelname)-8s %(thread)6d %(name)-30s %(funcName)-20s %(message)s',
@@ -200,9 +201,9 @@ class BlueForsGUIMainWindow(QMainWindow):
         if not self._check_gate:
             self.gate_control.setDisabled(True)
 
-        self.lockin_control = LockinControl(self.gw)
-        if not self._check_lockin:
-            self.lockin_control.setDisabled(True)
+        # self.lockin_control = LockinControl(self.gw)
+        # if not self._check_lockin:
+        #     self.lockin_control.setDisabled(True)
 
         self.magnet_control = MagnetControl(self.gw)
         if not self._check_magnet:
@@ -223,46 +224,56 @@ class BlueForsGUIMainWindow(QMainWindow):
         Initialize docks
         """
         MIN_DOCK_WIDTH = 100
+        MAX_DOCK_WIDTH = 350
 
         self.tree_dock = QDockWidget('Data structure', self)
         self.tree_dock.setMinimumWidth(MIN_DOCK_WIDTH)
+        # self.tree_dock.setMaximumWidth(MAX_DOCK_WIDTH)
         self.tree_dock.setWidget(self.tree_view)
 
         self.plot_form_dock = QDockWidget('Plot config', self)
         self.plot_form_dock.setMinimumWidth(MIN_DOCK_WIDTH)
+        # self.plot_form_dock.setMaximumWidth(MAX_DOCK_WIDTH)
         self.plot_form_dock.setWidget(self.plot_form)
 
         self.measurement_control_dock = QDockWidget('Measurement control', self)
         self.measurement_control_dock.setMinimumWidth(MIN_DOCK_WIDTH)
+        self.measurement_control_dock.setMaximumWidth(MAX_DOCK_WIDTH)
         self.measurement_control_dock.setWidget(self.measurement_control)
 
         ## Add new stuff here!
         self.sensor_control_dock = QDockWidget('Sensor control', self)
         self.sensor_control_dock.setMinimumWidth(MIN_DOCK_WIDTH)
+        self.sensor_control_dock.setMaximumWidth(MAX_DOCK_WIDTH)
         self.sensor_control_dock.setWidget(self.sensor_control)
 
         self.vna_control_dock = QDockWidget('VNA control', self)
         self.vna_control_dock.setMinimumWidth(MIN_DOCK_WIDTH)
+        self.vna_control_dock.setMaximumWidth(MAX_DOCK_WIDTH)
         self.vna_control_dock.setWidget(self.vna_control)
         
         self.gate_control_dock = QDockWidget('Gate control', self)
         self.gate_control_dock.setMinimumWidth(MIN_DOCK_WIDTH)
+        self.gate_control_dock.setMaximumWidth(MAX_DOCK_WIDTH)
         self.gate_control_dock.setWidget(self.gate_control)
 
-        self.lockin_control_dock = QDockWidget('Lockin control', self)
-        self.lockin_control_dock.setMinimumWidth(MIN_DOCK_WIDTH)
-        self.lockin_control_dock.setWidget(self.lockin_control)
+        # self.lockin_control_dock = QDockWidget('Lockin control', self)
+        # self.lockin_control_dock.setMinimumWidth(MIN_DOCK_WIDTH)
+        # self.lockin_control_dock.setWidget(self.lockin_control)
 
         self.magnet_control_dock = QDockWidget('Magnet control', self)
         self.magnet_control_dock.setMinimumWidth(MIN_DOCK_WIDTH)
+        self.magnet_control_dock.setMaximumWidth(MAX_DOCK_WIDTH)
         self.magnet_control_dock.setWidget(self.magnet_control)
 
         self.motor_control_dock = QDockWidget('Motor control', self)
         self.motor_control_dock.setMinimumWidth(MIN_DOCK_WIDTH)
+        self.motor_control_dock.setMaximumWidth(MAX_DOCK_WIDTH)
         self.motor_control_dock.setWidget(self.motor_control)
 
         self.heater_control_dock = QDockWidget('Heater control', self)
         self.heater_control_dock.setMinimumWidth(MIN_DOCK_WIDTH)
+        self.heater_control_dock.setMaximumWidth(MAX_DOCK_WIDTH)
         self.heater_control_dock.setWidget(self.heater_control)
         ##
 
@@ -284,18 +295,18 @@ class BlueForsGUIMainWindow(QMainWindow):
         self.addDockWidget(Qt.RightDockWidgetArea, self.gate_control_dock)
         liste.append(self.gate_control_dock.toggleViewAction())
 
-        self.addDockWidget(Qt.RightDockWidgetArea, self.heater_control_dock)
-        liste.append(self.heater_control_dock.toggleViewAction())
-        self.addDockWidget(Qt.RightDockWidgetArea, self.lockin_control_dock)
-        liste.append(self.lockin_control_dock.toggleViewAction())
-
         self.addDockWidget(Qt.RightDockWidgetArea, self.magnet_control_dock)
         liste.append(self.magnet_control_dock.toggleViewAction())
         self.addDockWidget(Qt.RightDockWidgetArea, self.motor_control_dock)
         liste.append(self.motor_control_dock.toggleViewAction())
 
+        self.addDockWidget(Qt.RightDockWidgetArea, self.heater_control_dock)
+        liste.append(self.heater_control_dock.toggleViewAction())
+        # self.addDockWidget(Qt.RightDockWidgetArea, self.lockin_control_dock)
+        # liste.append(self.lockin_control_dock.toggleViewAction())
+
         self.splitDockWidget(self.vna_control_dock, self.gate_control_dock, Qt.Horizontal)
-        self.splitDockWidget(self.heater_control_dock, self.lockin_control_dock, Qt.Horizontal)
+        # self.splitDockWidget(self.heater_control_dock, self.lockin_control_dock, Qt.Horizontal)
         # self.splitDockWidget(self.heater_control_dock, self.magnet_control_dock, Qt.Horizontal)
         self.splitDockWidget(self.magnet_control_dock, self.motor_control_dock, Qt.Horizontal)
         
@@ -323,7 +334,7 @@ if __name__ == '__main__':
 
         app = CleanupApp()
         app.setOrganizationName('P5-Control-Team')
-        app.setApplicationName('BlueFors GUI')
+        app.setApplicationName('BlueFors GUI v2')
 
         window = BlueForsGUIMainWindow(app, dgw, gw)
         window.show()
