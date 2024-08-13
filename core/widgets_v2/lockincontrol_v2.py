@@ -32,7 +32,8 @@ class LockinControl(QWidget):
         except AttributeError:
             self.exist = False
 
-        self.id = self.dgw.register_callback("/status/lockin", lambda arr: self._handle_status_callback(arr))
+        if self.exist:
+            self.id = self.dgw.register_callback("/status/lockin", lambda arr: self._handle_status_callback(arr))
 
         self.status_indicator = LedIndicator(warning=False)
         if not self.exist:
