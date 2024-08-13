@@ -27,6 +27,7 @@ class Rref(BaseDriver):
 
     def __init__(self, name: str, R_ref = None):
         self._name = name
+        self.refresh_delay = 1
 
         if R_ref is None:
             self.calculating = True
@@ -46,15 +47,17 @@ class Rref(BaseDriver):
         pass
 
     def get_status(self):
-        """Returns the current amplitude and frequency."""
         logger.debug("%s.get_status()", self._name)
         return {
-            "time": time.time(),
             "R_ref": self.R_ref,
         }
 
     def get_data(self):
-        return {}
+        logger.debug("%s.get_data()", self._name)
+        return {
+            "time": time.time(),
+            "R_ref": self.R_ref,
+        }
     
     def set_rref(self, rref):
         logger.debug("%s.set_rref()", self._name)
