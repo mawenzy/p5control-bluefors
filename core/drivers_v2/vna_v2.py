@@ -179,7 +179,7 @@ class ZNB40_source(ThreadSafeBaseDriver):
         self.amplitude = 10**(power/20-.5)
         return power
     
-    def setAmplitude(self, amplitude):
+    def setAmplitude(self, amplitude:float):
         logger.info('%s.setAmplitude()', self._name)
         self.setPower(10*np.log10(amplitude**2*10))
         pass
