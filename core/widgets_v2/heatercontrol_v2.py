@@ -1,7 +1,7 @@
 from p5control import InstrumentGateway, DataGateway
 
 from typing import Optional
-from qtpy.QtCore import Slot, Signal
+from qtpy.QtCore import Slot
 from qtpy.QtWidgets import QWidget, QVBoxLayout, QFormLayout, QHBoxLayout, QLabel, QLineEdit, QGridLayout, QToolButton
 from pyqtgraph import SpinBox
 from .utils import PlayPauseButton, StatusIndicator, LedIndicator
@@ -19,13 +19,16 @@ class HeaterControl(QWidget):
         gw: InstrumentGateway,
         parent: Optional['QWidget'] = None
     ):
+        # Child of QWidget
         super().__init__(parent)
 
+        # Name and Gateways
         self._name = 'HeaterControl'
         self.gw = gw
         self.dgw = DataGateway(allow_callback=True)
         self.dgw.connect()
 
+        # Check if device is actually present
         self.exist = True
         try:
             # TODO
@@ -33,6 +36,7 @@ class HeaterControl(QWidget):
         except AttributeError:
             self.exist = False
 
+        # If device is there register callbacks
         if self.exist:
             self.heater_id   = self.dgw.register_callback(
                 "/status/bluefors/driver", 
@@ -44,10 +48,7 @@ class HeaterControl(QWidget):
                 "/status/bluefors/heater/output_power",  
                 lambda arr: self._handle_status_callback_HeaterPower(arr))
            
-        ### PID
-        self.pid_line = QLineEdit()
-        self.pid_line.setText(f'{self.gw.bluefors.getP():.1f}, {self.gw.bluefors.getI():.1f}, {self.gw.bluefors.getD():.1f}')
-        self.pid_line.textChanged[str].connect(self._handle_pid)
+        # Setup displayed elements
 
         ## Button + Status Indicators
         self.btn_pid = PlayPauseButton()
@@ -84,8 +85,8 @@ class HeaterControl(QWidget):
         ### Manual Value
         default_value = 0
         if self.exist:
-            default_value = self.gw.bluefors.getManualValue()*1000
-        self.manual_value = SpinBox(value=default_value, bounds=[0, 1500])
+            default_value = self.gw.bluefors.getManualValue()*1e6
+        self.manual_value = SpinBox(value=default_value, bounds=[0, 1e6])
         self.manual_value.valueChanged.connect(self._handle_target_manual_value)
 
         ### Range
@@ -93,25 +94,34 @@ class HeaterControl(QWidget):
         default_value = 0
         if self.exist:
             default_value = self.gw.bluefors.getRange()
-            for i in self.gw.bluefors.possible_ranges:
-                self.range.addItem(i)
+            for current in self.gw.bluefors.possible_ranges[1:]:
+                power = current * self.gw.bluefors.sample_heater_resistance
+                string = f'{power*1e6:03.1e}'
+                string = string[0:4]+string[-3]+string[-1]
+                self.range.addItem(string)
             self.range.setCurrentIndex(default_value-1)
         self.range.activated.connect(self._handle_range)
 
-        # layout
+        ### PID
+        self.pid_line = QLineEdit()
+        if self.exist:
+            self.pid_line.setText(f'{self.gw.bluefors.getP():.1f}, {self.gw.bluefors.getI():.1f}, {self.gw.bluefors.getD():.1f}')
+            self.pid_line.textChanged[str].connect(self._handle_pid)
+
+        # Embed elements is grid like structure
         layout = QGridLayout()
 
         layout.addWidget(QLabel("Manual:"), 0, 0)
         layout.addWidget(self.btn_manual, 0, 1)
         layout.addWidget(self.status_indicator_manual, 0, 2)
 
-        layout.addWidget(QLabel("Power: (W)"), 1, 0)
+        layout.addWidget(QLabel("Power: (µW)"), 1, 0)
         layout.addWidget(self.output_power, 1, 1, 1, 2)
 
-        layout.addWidget(QLabel("Manual: (W)"), 2, 0)
+        layout.addWidget(QLabel("Manual: (µW)"), 2, 0)
         layout.addWidget(self.manual_value, 2, 1, 1, 2)
         
-        layout.addWidget(QLabel("Range: (W)"), 3, 0)
+        layout.addWidget(QLabel("Range: (µW)"), 3, 0)
         layout.addWidget(self.range, 3, 1, 1, 2)
 
         layout.addWidget(QLabel("PID:"), 0, 3)
@@ -124,19 +134,20 @@ class HeaterControl(QWidget):
         layout.addWidget(QLabel("Setpoint: (mK)"), 2, 3)
         layout.addWidget(self.set_point, 2, 4, 1, 2)
 
-        layout.addWidget(QLabel("PID:"), 3, 3)
+        layout.addWidget(QLabel("PID values:"), 3, 3)
         layout.addWidget(self.pid_line, 3, 4, 1, 2)
 
-        layout.setColumnStretch(6,6)
+        layout.setColumnStretch(6,6) # Add Strech, so elements aren't moving with different windowsizes
 
         vlayout = QVBoxLayout(self)
         vlayout.addLayout(layout)
-        vlayout.addStretch()
+        vlayout.addStretch() # again add strech
 
         logger.debug('%s initialized.', self._name)
 
+    # All the handling functions.
 
-    ## Button + Status Indicators
+    ## Displaying Stauts of Button, Status Indicators, Disabling
     def _handle_status_callback_driver(self, arr):
         logger.debug('%s._handle_status_callback_heating()', self._name)
         pid = bool(arr[0][1])
@@ -153,29 +164,29 @@ class HeaterControl(QWidget):
         self.btn_manual.setEnabled(not pid)
 
 
-
-    @Slot(bool)
+    ## Handle Button Press
+    # @Slot(bool)
     def _handle_btn_change_pid(self, playing:bool):
         logger.debug('%s._handle_btn_change_pid(%s)', self._name, playing)
         self.gw.bluefors.setPIDMode(playing)
 
-    @Slot(bool)
+    # @Slot(bool)
     def _handle_btn_change_manual(self, playing:bool):
         logger.debug('%s._handle_btn_change_manual(%s)', self._name, playing)
         self.gw.bluefors.setManualMode(playing)
 
-    ## Status Values
+    ## Handle Status Values
     def _handle_status_callback_HeaterPower(self, arr):
         logger.debug('%s._handle_status_callback_HeaterPower()', self._name)
         power = arr[0][1]
-        self.output_power.setText(f"{power:.2e}")
+        self.output_power.setText(f"{power*1e6:.2e}")
 
     def _handle_status_callback_Tsample(self, arr):
         logger.debug('%s._handle_status_callback_Tsample()', self._name)
         temperature = arr[0][1]
         self.sample_temperature.setText(f"{temperature*1000:.1f}")
 
-    ## Set Boxes
+    ## Handle Change of Values in QSpinbox, QLineEdit 
     def _handle_set_point(self, value):
         logger.debug('%s._handle_set_point()', self._name)
         self.gw.bluefors.setSetPoint(float(value)/1000)
@@ -186,7 +197,7 @@ class HeaterControl(QWidget):
 
     def _handle_target_manual_value(self, value):
         logger.debug('%s._handle_target_manual_value()', self._name)
-        self.gw.bluefors.setManualValue(float(value))
+        self.gw.bluefors.setManualValue(float(value)*1e-6)
 
     def _handle_pid(self, text):
         text = self.pid_line.text()
