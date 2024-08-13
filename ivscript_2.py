@@ -133,6 +133,8 @@ class MeasurementScript_v2():
 
         self.gw.vna.setOutput(False)
         self.gw.gate.setOutput(False)
+        self.gw.bluefors.setManualMode(False)
+        self.gw.bluefors.setPIDMode(False)
 
         self.gw.adwin.setAmplitude(0)
         self.gw.adwin.setSweeping(False)
