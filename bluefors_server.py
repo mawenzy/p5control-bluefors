@@ -1,8 +1,9 @@
 # setup logging
 import logging
+from time import time
 logger = logging.getLogger(__name__)
 logging.basicConfig(
-    filename='bluefors_server.log',
+    filename=f'.logs/bluefors_server_{time()}.log',
     level=logging.DEBUG,
     filemode='w', # overwrites logs every time this script is started
     format='%(asctime)s.%(msecs)03d %(levelname)-8s %(thread)6d %(name)-30s %(funcName)-20s %(message)s',
@@ -31,6 +32,7 @@ from core.drivers.keysightP5028A import KeysightP5028A # Keysight VNA
 Initialize Instrument Server
 """
 inserv = InstrumentServer()
+# inserv = InstrumentServer(data_server_filename='24-07-11_OI-24d-08_pre-test_1.hdf5')
 # inserv = InstrumentServer(data_server_filename='R_ref^4K over T_still.hdf5')
 
 
@@ -44,15 +46,17 @@ inserv._add('R_ref', Rref, R_ref = 100000)
 # inserv._add('adwin', ADwinGold2_v5_2ch)
 # inserv._add('source', KeysightB2962A_v2, 'TCPIP0::192.168.1.113::INSTR')
 
-# inserv._add('bluefors', BlueForsAPI)
+inserv._add('bluefors', BlueForsAPI)
 inserv._add('motor', Faulhaber)
-# inserv._add('magnet', AMI430, '192.168.1.103')
+inserv._add('magnet', AMI430, '192.168.1.103')
 # inserv._add('thermo', Keysight34461A_thermometer, 'TCPIP0::192.168.1.111::INSTR')
 inserv._add('vna', ZNB40, '192.168.1.104', case = 'time', S = '11') # antenna=11, stripline=22
 
 # Keysight reserve
 # inserv._add('multi_V1', Keysight34461A, 'TCPIP0::192.168.1.110::INSTR')
 # inserv._add('multi_V2', Keysight34461A, 'TCPIP0::192.168.1.111::INSTR')
+# inserv._add('source1', KeysightB2962A, 'TCPIP0::192.168.1.112::INSTR')
+# inserv._add('source2', KeysightB2962A, 'TCPIP0::192.168.1.113::INSTR')
 # inserv._add('ground', Keysight34461A, 'TCPIP0::192.168.1.110::INSTR')
 # inserv._add('ground', Keysight34461A_ground, 'TCPIP0::192.168.1.110::INSTR')
 # inserv._add('ground', Keysight34461A_ground_R, 'TCPIP0::192.168.1.110::INSTR')
