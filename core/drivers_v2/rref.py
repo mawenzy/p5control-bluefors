@@ -2,7 +2,7 @@
 Test driver to illustrate the inner workings of *p5control*.
 """
 import logging
-import time
+from time import time
 
 import numpy as np
 
@@ -59,6 +59,8 @@ class Rref(BaseDriver):
 
     def get_data(self):
         return {
+            "time": time(),
+            "R_ref": self.R_ref,
             }
     
     def set_rref(self, rref):
