@@ -3,5 +3,6 @@
 *.log
 
 .data/*
-code_archieve/*
-test*
+.logs/*
+.old/*
+data/*
