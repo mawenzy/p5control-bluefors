@@ -189,6 +189,7 @@ class Femto(BaseDriver):
     def get_data(self):
         logger.info('%s.get_data()', self._name)
         return {
+            "time" : time.time(),
             "amp_A": self.amp_A,
             "amp_B": self.amp_B,
         }
@@ -248,7 +249,7 @@ class Femto(BaseDriver):
         if channel == 'A':
             return self.amp_A     
         elif channel == 'B':
-            return self.amp_A        
+            return self.amp_B        
         else:
             logger.warning("%s.set_amp(%s, channel=%s) channel must be either 'A' or 'B'.", self._name, amp, channel)
     
