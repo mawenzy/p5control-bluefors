@@ -30,16 +30,19 @@ optional:
 - vna_time
 - vna_frequency
 
+Callbacks von nicht aktiven widgets verstopfen eventuell GUI
+
 '''
 
 '''
 Logger
 '''
 import logging
+from time import time
 logger = logging.getLogger(__name__)
 logging.basicConfig(
-    filename='server_v2.log',
-    level=logging.INFO,
+    filename=f'.data/server_v2.log',
+    level=logging.DEBUG,
     filemode='w', # overwrites logs every time this script is started
     format='%(asctime)s.%(msecs)03d %(levelname)-8s %(thread)6d %(name)-30s %(funcName)-20s %(message)s',
     datefmt='%Y-%m-%d %H:%M:%S',
@@ -67,28 +70,33 @@ from core.drivers_v2.blueforsapi_v2 import BlueForsAPI
 from core.drivers_v2.ami430_v2 import AMI430
 
 from core.drivers_v2.vna_v2 import ZNB40_source
+from core.drivers_v2.yoko_v2 import YokogawaGS200
+
+from core import Faulhaber
 
 """
 Initialize Instrument Server
 """
 inserv = InstrumentServer()
-# inserv = InstrumentServer(data_server_filename='R_ref^4K over T_still.hdf5')
+# inserv = InstrumentServer(data_server_filename='24-08-07_OI-24d-10_bias_over_gate_0.hdf5')
 
 """
 Add Devices
 """
 
-inserv._add('adwin', ADwinGold2)
+inserv._add('adwin', ADwinGold2, series_resistance=0)
+inserv._add('rref',  Rref, R_ref = 5.2e4) # 100kOhm
 inserv._add('femto', Femto)
-inserv._add('rref',  Rref, R_ref = 100e3) # 100kOhm
+
+inserv._add('vna',   ZNB40_source, S = '11')
+inserv._add('gate',  YokogawaGS200)
 
 inserv._add('bluefors', BlueForsAPI) # try to remove errors of sampleheater
-# inserv._add('magnet', AMI430) # untested
-# motor
-
-inserv._add('vna', ZNB40_source, S = '11')
-# gate
 # lockin
+
+inserv._add('magnet', AMI430) # untested
+inserv._add('motor',  Faulhaber)
+ 
 
 
 """
@@ -109,11 +117,21 @@ except InstrumentServerError or KeyError:
     pass
 
 try:
+    inserv._remove('vna')
+except InstrumentServerError or KeyError:
+    pass
+
+try:
+    inserv._remove('gate')
+except InstrumentServerError or KeyError:
+    pass
+
+try:
     inserv._remove('magnet')
 except InstrumentServerError or KeyError:
     pass
 
 try:
-    inserv._remove('vna')
+    inserv._remove('bluefors')
 except InstrumentServerError or KeyError:
     pass
