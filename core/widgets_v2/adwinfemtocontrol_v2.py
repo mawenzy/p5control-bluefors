@@ -42,8 +42,12 @@ class AdwinFemtoControl(QWidget):
             self.id2 = self.dgw.register_callback("/status/rref", lambda arr: self._handle_rref_status_callback(arr))
 
         self.amps = []
-        items = ['20 db / x10   ', '40 db / x100  ', '60 db / x1000 ', '80 db / x10000']
+        items = ['20 dB / x10   ', '40 dB / x100  ', '60 dB / x1000 ', '80 dB / x10000']
         items = ['x10   ', 'x100  ', 'x1000 ', 'x10000']
+        items = ['20 dB', '40 dB', '60 dB', '80 dB']
+        items = ['20 dB / 10^1', '40 dB / 10^2', '60 dB / 10^3', '80 dB / 10^4']
+        items = ['20 / x10   ', '40 / x100  ', '60 / x1000 ', '80 / x10000']
+        
         handlers = [self.onChanged_ch1, self.onChanged_ch2]
         channels = ['A', 'B']
         for i in range(2):
@@ -121,8 +125,8 @@ class AdwinFemtoControl(QWidget):
         lay.addWidget(self.V1_off, 0, 1)
         lay.addWidget(self.V2_off, 1, 1)
 
-        lay.addWidget(QLabel("amp V1:"), 0, 2)
-        lay.addWidget(QLabel("amp V2:"), 1, 2)
+        lay.addWidget(QLabel("amp V1: (dB)"), 0, 2)
+        lay.addWidget(QLabel("amp V2: (dB)"), 1, 2)
 
         lay.addWidget(self.amps[0], 0, 3)
         lay.addWidget(self.amps[1], 1, 3)
