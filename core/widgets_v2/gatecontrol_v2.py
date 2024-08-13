@@ -32,7 +32,8 @@ class GateControl(QWidget):
         except AttributeError:
             self.exist = False
 
-        self.id = self.dgw.register_callback("/status/gate", lambda arr: self._handle_status_callback(arr))
+        if self.exist:
+            self.id = self.dgw.register_callback("/status/gate", lambda arr: self._handle_status_callback(arr))
 
         self.status_indicator = LedIndicator(warning=False)
         if not self.exist:
@@ -45,7 +46,7 @@ class GateControl(QWidget):
         default_value = 0
         if self.exist:
             default_value = self.gw.gate.getVoltage()
-        self.voltage = SpinBox(value=default_value, bounds=[-10, 10])
+        self.voltage = SpinBox(value=default_value, bounds=[-30, 30])
         self.voltage.valueChanged.connect(self._handle_voltage)
 
         lay = QGridLayout()
@@ -73,7 +74,7 @@ class GateControl(QWidget):
 
     def _handle_status_callback(self, arr):
         logger.debug('%s._handle_status_callback()', self._name)
-        pass
+        self.status_indicator.setChecked(bool(arr['output']))
         # TODO
         # leak current?
 
