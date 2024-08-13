@@ -221,6 +221,7 @@ class ADwinGold2(BaseDriver):
             # Handle amplification
             try:
                 femto_path = f"{STATUS_NAME}/{FEMTO_NAME}"
+                # femto_path = f"{hdf5_path}/{FEMTO_NAME}"
                 femto = dgw.get_data(femto_path, indices = slice(-2, -1, 1))
                 amp_V1 = femto['amp_A']
                 amp_V2 = femto['amp_B']
@@ -232,6 +233,7 @@ class ADwinGold2(BaseDriver):
             # Handle R_ref
             try:
                 rref_path = f"{STATUS_NAME}/{RREF_NAME}"
+                # rref_path = f"{hdf5_path}/{RREF_NAME}"
                 rref = dgw.get_data(rref_path, indices = slice(-2, -1, 1))
                 R_ref = rref['R_ref']
             except KeyError:
