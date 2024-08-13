@@ -1,6 +1,9 @@
 '''
 version v6:
 - adwin has now attribute ovls
+- adwin calculation enables R_TB
+
+- TODO calculate gradient
 '''
 
 import logging
@@ -23,17 +26,18 @@ STATUS_NAME = 'status'
 OFFSET_NAME = 'offset'
 RESISTANCE_NAME = 'resistance'
 
-FEMTO_NAME = 'femtos'
-RREF_NAME = 'R_ref'
+FEMTO_NAME = 'femto'
+RREF_NAME = 'rref'
 
 class ADwinGold2(BaseDriver):
-    def __init__(self, name: str):
+    def __init__(self, name: str, series_resistance=0):
         logger.info('%s.__init__()', name)
         self._name = name
         self.version = 'v6'
         self.processor_rate = 2e5
 
-        self.refresh_delay = .1
+        self.refresh_delay = .5
+        # Dont go too low with refresh_rate. Callbacks are waiting to long and get lost. original: .5, now .3, too low: .1
 
         self.open()
         self.lock = Lock()
@@ -54,9 +58,11 @@ class ADwinGold2(BaseDriver):
 
         self.calculating = True
         self.current_threshold = 0
+        self.series_resistance = series_resistance
 
         self.V1_ovl = False
         self.V2_ovl = False
+
 
     def open(self):
         logger.info('%s.open()', self._name)
@@ -88,6 +94,8 @@ class ADwinGold2(BaseDriver):
             "sweeping": self.sweeping,
             "amplitude": self.amplitude,
             "calculating": self.calculating,
+            "threshold": self.current_threshold,
+            "series_resistance": self.series_resistance,
             "period": self.period,
             "V1_off": self.V1_off,
             "V2_off": self.V2_off,
@@ -239,8 +247,9 @@ class ADwinGold2(BaseDriver):
             logic = np.abs(I) > self.current_threshold
             R[logic] = V[logic] / I[logic]
             R[np.abs(I) <= self.current_threshold] = np.nan     
+            R = R - self.series_resistance
 
-            G_0 = 7.748e-5 #Siemens oder 1/Ohm
+            G_0 = 7.748e-5 # Siemens oder 1/Ohm
             G = 1 / R / G_0 
             # dIdV = np.gradient(I,V) / G_0 
 
@@ -377,4 +386,12 @@ class ADwinGold2(BaseDriver):
     def getCurrentThreshold(self):
         logger.info('%s.getCurrentThreshold()', self._name)
         return self.current_threshold
+    
+    def setSeriesResistance(self, value:float):
+        logger.info('%s.setSeriesResistance()', self._name)
+        self.series_resistance = value
+
+    def getSeriesResistance(self):
+        logger.info('%s.getSeriesResistance()', self._name)
+        return self.series_resistance
     
