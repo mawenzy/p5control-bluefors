@@ -99,8 +99,10 @@ class BlueForsAPI(BaseDriver):
         self.sample_heater_setpoint = .1         # Setpoint [K]: 0.1       
         self.sample_heater_enable_ramping = 0    # 0 off, 1 on (default)
         self.sample_heater_ramping_rate = 1      # Ramping Rate [K/min]: 1 (default)
-        self.possible_ranges = ['1.2e-7', '1.2e-6', '1.2e-5', '1.2e-4', '1.2e-3', '1.2e-2', '1.2e-1', '1.2e-0']
-        
+
+        self.possible_ranges = np.array([0, 1e-9, 1e-8, 1e-7, 1e-6, 1e-5, 1e-4, 1e-3, 1e-2])
+        self.sample_heater_actual_range = self.possible_ranges[self.sample_heater_range] * self.sample_heater_resistance
+
         self.status_keys = [
             ['A-sample', 'driver.lakeshore.status.inputs.channelA.temperature', 0, T_STRING],
             ['1-50K',    'driver.lakeshore.status.inputs.channel1.temperature', 0, T_STRING],
@@ -216,6 +218,10 @@ class BlueForsAPI(BaseDriver):
         now = time()
 
         # get heater settings
+        
+        self.sample_heater_actual_range = 0
+        if self.sample_heater_range != 0:
+            self.sample_heater_actual_range = self.possible_ranges[self.sample_heater_range]*self.sample_heater_resistance
         status = {
             "driver": {
                 "time": now,
@@ -237,6 +243,7 @@ class BlueForsAPI(BaseDriver):
                 "setpoint": self.sample_heater_setpoint,
                 "enable_ramping": self.sample_heater_enable_ramping,
                 "ramping_rate": self.sample_heater_ramping_rate,
+                "actual_range": self.sample_heater_actual_range,
             },
             "status":{},
         }
