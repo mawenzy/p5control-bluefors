@@ -68,8 +68,7 @@ class BlueforsServer_v2():
         self.inserv._remove('vna')
         self.inserv._remove('gate')
         self.inserv._remove('magnet')
-
-
+        self.inserv._remove('bluefors')
 class MeasurementScript_v2():
     
     def __init__(self):        
@@ -164,7 +163,7 @@ class MeasurementScript_v2():
         if motor_position is not None:
             string += f' motor_{motor_position:+2.8f}'
         if heater_power is not None:
-            string += f' heater_{heater_power*1e6:09.3f}µW'
+            string += f' heater_{heater_power*1e6:09.3f}muW'
         return string
 
     def setup_magnet(self, magnetic_field, ramp_cool_down):
