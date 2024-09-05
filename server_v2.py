@@ -67,6 +67,7 @@ from core.drivers_v2.femto_v2 import Femto
 from core.drivers_v2.rref import Rref
 
 from core.drivers_v2.blueforsapi_v2 import BlueForsAPI
+from core.drivers_v2.faulhaber_v2 import Faulhaber
 from core.drivers_v2.ami430_v2 import AMI430
 
 from core.drivers_v2.vna_v2 import ZNB40_source
