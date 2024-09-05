@@ -623,11 +623,11 @@ class MeasurementScript_v2():
         heater_powers = np.exp(2.479 * np.log(temperatures * 0.06515603))
         if relaxation_turns is not None:
             zero_turns = np.zeros(relaxation_turns)
-            index = 0
             heater_powers = np.concatenate((heater_powers, zero_turns))
 
         _ = self.setup_heater(heater_powers[0], self.heater_cool_down)
         
+        index = 0
         for _, heater_power in enumerate(tqdm(heater_powers)):
             fname = self.name_generator(heater_power=heater_power)[1:]
             if heater_power == 0:
