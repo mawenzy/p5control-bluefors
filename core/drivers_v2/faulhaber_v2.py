@@ -24,21 +24,25 @@ class Faulhaber(BaseDriver):
         name for this instance
     """
 
-    def __init__(self, name: str):
+    def __init__(
+            self, 
+            name: str,
+            address:int = 3,
+            ):
         # super().__init__()
         
         # maximum value is 1800000000
         # for position and limit
 
-        self.refresh_delay = 0.1
 
         self._name = name
-        self._address = 3
+        self.address = address
+        self.refresh_delay = 0.1
 
         self.lock = Lock()
 
         self._norm_turn = 1e8
-        self._target_pos = np.NAN
+        self._target_pos = np.nan
         self._target_speed = 7000 # even though manual tells 30000
 
         "Limits can be at maximum +/- 1.8e9. Else overflow and movement direction is inverted."
