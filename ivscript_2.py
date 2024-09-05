@@ -103,7 +103,7 @@ class MeasurementScript_v2():
         self.sweep_cool_down = 0
         self.meas_delay_time = .5
 
-        self.amplitude = 0
+        self.amplitude = 0.0
         self.period = 28.0327 # equals 35.673mHz, 50Hz equals 20 ms
         self.sweep_time = 30
         self.offset_time = 3
