@@ -6,7 +6,7 @@ import numpy as np
 from ADwin import ADwin
 from threading import Lock
 from time import sleep
-from pyvisa import ResourceManager
+import pyvisa
 
 from core.utilities.config import dump_to_config, load_from_config
 
@@ -27,7 +27,7 @@ class Faulhaber(BaseDriver):
     def __init__(
             self, 
             name: str,
-            address:int = 3,
+            address:int = 6,
             ):
         # super().__init__()
         
@@ -36,7 +36,7 @@ class Faulhaber(BaseDriver):
 
 
         self._name = name
-        self.address = address
+        self._address = address
         self.refresh_delay = 0.1
 
         self.lock = Lock()
@@ -56,7 +56,7 @@ class Faulhaber(BaseDriver):
     
     def open(self):
         # Connect to pyvisa
-        rm = ResourceManager()
+        rm = pyvisa.ResourceManager()
         self._inst = rm.open_resource(f"ASRL{self._address}::INSTR")
         self._inst.read_termination = "\r\n"
         self._inst.timeout = 1000
