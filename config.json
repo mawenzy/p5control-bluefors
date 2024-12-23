@@ -1,6 +1,6 @@
 {
     "motor": {
-        "position": 199999992,
+        "position": 499999995,
         "upper_limit": 1800000000,
         "lower_limit": -10000
     }
