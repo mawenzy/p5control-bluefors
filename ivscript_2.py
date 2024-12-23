@@ -13,10 +13,10 @@ from core.drivers_v2.blueforsapi_v2 import BlueForsAPI
 from core.drivers_v2.ami430_v2 import AMI430
 from core.drivers_v2.vna_v2 import ZNB40_source
 from core.drivers_v2.yoko_v2 import YokogawaGS200
-from core import Faulhaber
+from core.drivers_v2.faulhaber_v2 import Faulhaber
 
-import logging
-logger = logging.getLogger(__name__)
+# import logging
+# logger = logging.getLogger(__name__)
 
 class BlueforsServer_v2():
     def __init__(self):
@@ -32,22 +32,22 @@ class BlueforsServer_v2():
         
         if server_name is None:
             self.inserv = InstrumentServer()
-            logging.basicConfig(
-                filename=f'.data/iv_script_v2_{time()}.log',
-                level=logging.DEBUG,
-                filemode='w', # overwrites logs every time this script is started
-                format='%(asctime)s.%(msecs)03d %(levelname)-8s %(thread)6d %(name)-30s %(funcName)-20s %(message)s',
-                datefmt='%Y-%m-%d %H:%M:%S',
-            )
+            # logging.basicConfig('
+            #     filename=f'.data/iv_script_v2_{time()}.log',
+            #     level=logging.DEBUG,
+            #     filemode='w', # overwrites logs every time this script is started
+            #     format='%(asctime)s.%(msecs)03d %(levelname)-8s %(thread)6d %(name)-30s %(funcName)-20s %(message)s',
+            #     datefmt='%Y-%m-%d %H:%M:%S',
+            # )'
         else:
             self.inserv = InstrumentServer(data_server_filename=server_name)
-            logging.basicConfig(
-                filename=f'{server_name[:-5]}.log',
-                level=logging.DEBUG,
-                filemode='w', # overwrites logs every time this script is started
-                format='%(asctime)s.%(msecs)03d %(levelname)-8s %(thread)6d %(name)-30s %(funcName)-20s %(message)s',
-                datefmt='%Y-%m-%d %H:%M:%S',
-            )
+            # logging.basicConfig(
+            #     filename=f'{server_name[:-5]}.log',
+            #     level=logging.DEBUG,
+            #     filemode='w', # overwrites logs every time this script is started
+            #     format='%(asctime)s.%(msecs)03d %(levelname)-8s %(thread)6d %(name)-30s %(funcName)-20s %(message)s',
+            #     datefmt='%Y-%m-%d %H:%M:%S',
+            # )
 
         """
         Add Devices
@@ -59,7 +59,7 @@ class BlueforsServer_v2():
         self.inserv._add('gate',  YokogawaGS200)
         self.inserv._add('bluefors', BlueForsAPI) # try to remove errors of sampleheater
         self.inserv._add('magnet', AMI430) # untested
-        self.inserv._add('motor',  Faulhaber)
+        self.inserv._add('motor',  Faulhaber, address=6)
         self.inserv.start()  
 
     def stop_server(self):        
@@ -69,6 +69,9 @@ class BlueforsServer_v2():
         self.inserv._remove('gate')
         self.inserv._remove('magnet')
         self.inserv._remove('bluefors')
+        self.inserv._remove('motor')
+
+        
 class MeasurementScript_v2():
     
     def __init__(self):        
