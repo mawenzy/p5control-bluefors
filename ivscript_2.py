@@ -65,7 +65,7 @@ class BlueforsServer_v2():
     def stop_server(self):        
         self.inserv.stop()
         self.inserv._remove('femto')
-        self.inserv._remove('vna')
+        # self.inserv._remove('vna')
         self.inserv._remove('gate')
         self.inserv._remove('magnet')
         self.inserv._remove('bluefors')
