@@ -26,7 +26,7 @@ class BlueforsServer_v2():
             self, 
             server_name = None,
             S = '11',
-            R_ref= 5.2e4,
+            R_ref= 1e5,
             ):
         
         if server_name is None:
