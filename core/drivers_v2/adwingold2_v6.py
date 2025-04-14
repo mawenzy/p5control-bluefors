@@ -352,7 +352,7 @@ class ADwinGold2(BaseDriver):
         
     def setSampleRate(self, value:float):
         logger.info('%s.setSampleRate()', self._name)
-        self.setAveraging(self.processor_rate/value)
+        self.setAveraging(int(self.processor_rate/value))
 
     def getSampleRate(self):
         logger.info('%s.getSampleRate()', self._name)
