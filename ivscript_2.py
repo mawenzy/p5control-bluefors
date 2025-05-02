@@ -14,12 +14,22 @@ from core.drivers_v2.ami430_v2 import AMI430
 from core.drivers_v2.vna_v2 import ZNB40_source
 from core.drivers_v2.yoko_v2 import YokogawaGS200
 from core.drivers_v2.faulhaber_v2 import Faulhaber
+from core.drivers_v2.dummy_v2 import Dummy
 
 # import logging
 # logger = logging.getLogger(__name__)
 
 class BlueforsServer_v2():
-    def __init__(self):
+    def __init__(self, 
+            magnet = True,
+            vna = True,
+            motor = True,
+            gate = True
+            ):
+        self.magnet = magnet
+        self.vna = vna
+        self.motor = motor
+        self.gate = gate
         pass
 
     def start_server(
@@ -55,21 +65,38 @@ class BlueforsServer_v2():
         self.inserv._add('adwin', ADwinGold2, series_resistance=0)
         self.inserv._add('rref',  Rref, R_ref = R_ref) # 100kOhm
         self.inserv._add('femto', Femto)
-        self.inserv._add('vna',   ZNB40_source, S = S)
-        self.inserv._add('gate',  YokogawaGS200)
         self.inserv._add('bluefors', BlueForsAPI) # try to remove errors of sampleheater
-        self.inserv._add('magnet', AMI430) # untested
-        self.inserv._add('motor',  Faulhaber, address=6)
+        if self.gate:
+            self.inserv._add('gate',  YokogawaGS200, address=1)
+        else:
+            self.inserv._add('gate',  Dummy)
+        if self.vna:
+            self.inserv._add('vna',   ZNB40_source, S = S)
+        else:
+            self.inserv._add('vna',   Dummy)
+        if self.magnet:
+            self.inserv._add('magnet', AMI430) # untested
+        else:
+            self.inserv._add('magnet', Dummy)
+        if self.motor:
+            self.inserv._add('motor', Faulhaber, address=6)
+        else:
+            self.inserv._add('motor', Dummy)
+            
         self.inserv.start()  
 
     def stop_server(self):        
         self.inserv.stop()
         self.inserv._remove('femto')
-        # self.inserv._remove('vna')
-        self.inserv._remove('gate')
-        self.inserv._remove('magnet')
         self.inserv._remove('bluefors')
-        self.inserv._remove('motor')
+        # if self.vna:
+            # self.inserv._remove('vna')
+        if self.gate:
+            self.inserv._remove('gate')
+        if self.magnet:
+            self.inserv._remove('magnet')
+        # if self.motor:
+        #     self.inserv._remove('motor')
 
         
 class MeasurementScript_v2():
@@ -94,26 +121,26 @@ class MeasurementScript_v2():
         #self.time_name = 'time_evolution'
         #self.position_name = 'motor_positions'
     
-        self.adwin_sample_rate = 4000
+        self.adwin_sample_rate = 4000 # Hz
         self.femto1_amp = 1
         self.femto2_amp = 1
-        self.magnet_rate = 0
+        self.magnet_rate = 0.01 # T/min
 
-        self.initial_ramp_cool_down = 600
-        self.ramp_cool_down = 10
-        self.heater_cool_down = 10
-        self.offset_cool_down = 0
-        self.sweep_cool_down = 0
+        self.initial_ramp_cool_down = 600 # seconds
+        self.ramp_cool_down = 10.0 # seconds
+        self.heater_cool_down = 10.0 # seconds
+        self.offset_cool_down = 0.0 # seconds
+        self.sweep_cool_down = 0.0 # seconds
         self.meas_delay_time = .5
 
         self.amplitude = 0.0
         self.period = 28.0327 # equals 35.673mHz, 50Hz equals 20 ms
-        self.sweep_time = 30
-        self.offset_time = 3
+        self.sweep_time = 30.0 # seconds
+        self.offset_time = 3.0 # seconds
         
         self.voltage = 0.002 # V
-        self.save_amp = .5
-        self.motor_speed = 20
+        self.save_amp = .5 # V
+        self.motor_speed = 20 # arb. units
 
         self.initialize_devices()
     
