@@ -6,3 +6,4 @@
 .logs/*
 data/*´
 .old/code_archieve/*
+.venv/*
