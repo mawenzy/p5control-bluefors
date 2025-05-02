@@ -23,9 +23,9 @@ class YokogawaGS200(ThreadSafeBaseDriver):
 
         # status stuff
         self.output = False
-        self.voltage = 0
-        self.range = 30
-        self.nplc = 1
+        self.voltage = 0.0
+        self.range = 30.0
+        self.nplc = 1.0
         self.compliance = .001
 
         self.possible_ranges = np.array([30, 10, 1, .1, .01])
