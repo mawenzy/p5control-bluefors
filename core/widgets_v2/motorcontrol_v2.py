@@ -97,7 +97,7 @@ class MotorControl(QWidget):
         # print(self.T, self._moving)
         self.status_indicator.setChecked(self._moving)
         self.btn.set_playing(self._moving)
-        self.position.setText(f"{pos:.3f}")
+        self.position.setText(f"{pos:.8f}")
 
     @Slot(bool)
     def _handle_btn_change(self, playing:bool):
