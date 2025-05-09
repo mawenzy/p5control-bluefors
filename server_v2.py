@@ -78,24 +78,24 @@ from core.drivers_v2.yoko_v2 import YokogawaGS200
 """
 Initialize Instrument Server
 """
-inserv = InstrumentServer()
-# inserv = InstrumentServer(data_server_filename='24-08-07_OI-24d-10_bias_over_gate_0.hdf5')
+# inserv = InstrumentServer()
+inserv = InstrumentServer(data_server_filename='OI-25c-09 2025-05-05 breaking 7.hdf5')
 
 """
 Add Devices
 """
 
 inserv._add('adwin', ADwinGold2, series_resistance=0)
-inserv._add('rref',  Rref, R_ref = 5.2e4) # 100kOhm
+inserv._add('rref',  Rref, R_ref = 1e5) # 100kOhm
 inserv._add('femto', Femto)
 
 inserv._add('vna',   ZNB40_source, S = '11')
-inserv._add('gate',  YokogawaGS200)
+# inserv._add('gate',  YokogawaGS200)
 
 inserv._add('bluefors', BlueForsAPI) # try to remove errors of sampleheater
 # lockin
 
-inserv._add('magnet', AMI430) # untested
+# inserv._add('magnet', AMI430) # untested
 inserv._add('motor',  Faulhaber)
  
 
