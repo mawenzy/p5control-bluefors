@@ -71,6 +71,7 @@ class Faulhaber(BaseDriver):
         self._inst.close()
             
     def initialize(self):
+        ok = self.query("DI")
         ok = self.query("EN")
         if ok:
             logger.info("%s Connection is established!", self._name)
@@ -94,26 +95,37 @@ class Faulhaber(BaseDriver):
 
     def query(self, string:str):
         with self.lock:
-            reading = self._inst.query(string)
+            try:
+                reading = self._inst.query(string)
 
-            # handles notifier
-            match reading:
-                case 'p':
-                    self._moving = False
-                    reading = self._inst.read()
-                    # print('reached', self._inst.query('pos'))
-                    self._inst.query('NP')
+                # handles notifier
+                match reading:
+                    case 'p':
+                        self._moving = False
+                        reading = self._inst.read()
+                        # print('reached', self._inst.query('pos'))
+                        self._inst.query('NP')
 
-            # print(string, reading)
-            # handles valid and invalid input
-            match reading:
-                case 'OK':
-                    return True
-                case 'Invalid parameter':
-                    logger.warning('%s.query(): Encountered invalid parameter.')
-                    return False
-                case _:
-                    return reading
+                # print(string, reading)
+                # handles valid and invalid input
+                match reading:
+                    case 'OK':
+                        return True
+                    case 'Invalid parameter':
+                        logger.warning('%s.query(): Encountered invalid parameter.')
+                        return False
+                    case _:
+                        return reading
+            except pyvisa.errors.VisaIOError:
+                print("nothing to read!")
+                return '0'
+            
+                
+    def read(self):
+        try:
+            return self._inst.read()
+        except pyvisa.errors.VisaIOError:
+            print("nothing to read!")
 
     def retrieve_data(self):
         now = time.time()
@@ -131,7 +143,7 @@ class Faulhaber(BaseDriver):
         logger.debug('%s.get_data()', self._name)
         # get position
         # get speed / current
-        return self.retrieve_data()
+        return # self.retrieve_data()
         
         # if self._moving:
         #     return self.retrieve_data()
@@ -151,7 +163,7 @@ class Faulhaber(BaseDriver):
         turns = position/self._norm_turn 
         # speed = int(self.query('GN')) # actual turns / min
         # current = float(self.query('GRC'))*1e-3 # A
-        temperature = int(self.query('TEM')) # °C
+        # temperature = int(self.query('TEM')) # °C
 
         self.write_global_position_to_config(int(position))
 
@@ -161,7 +173,7 @@ class Faulhaber(BaseDriver):
             # "speed": speed,
             # "current": current,
             "moving": self._moving,
-            "temperature": temperature,
+            # "temperature": temperature,
             }
     
     def reset_zero_pos(self):
