@@ -73,30 +73,33 @@ from core.drivers_v2.ami430_v2 import AMI430
 from core.drivers_v2.vna_v2 import ZNB40_source
 from core.drivers_v2.yoko_v2 import YokogawaGS200
 
+from core.drivers_v2.keysight34461A_RT import Keysight34461A_thermometer as RT_thermometer
+
 # from core import Faulhaber
 
 """
 Initialize Instrument Server
 """
 # inserv = InstrumentServer()
-inserv = InstrumentServer(data_server_filename='OI-25c-09 2025-05-05 breaking 7.hdf5')
+inserv = InstrumentServer(data_server_filename='OI-25d-10 2025-06-17 breaking 0.hdf5')
 
 """
 Add Devices
 """
-
-inserv._add('adwin', ADwinGold2, series_resistance=0)
-inserv._add('rref',  Rref, R_ref = 1e5) # 100kOhm
-inserv._add('femto', Femto)
-
-inserv._add('vna',   ZNB40_source, S = '11')
-# inserv._add('gate',  YokogawaGS200)
-
-inserv._add('bluefors', BlueForsAPI) # try to remove errors of sampleheater
+# measurement
+# inserv._add('adwin', ADwinGold2, series_resistance=0)
+# inserv._add('rref',  Rref, R_ref = 1e5) # 100kOhm
+# inserv._add('femto', Femto)
 # lockin
 
-# inserv._add('magnet', AMI430) # untested
-inserv._add('motor',  Faulhaber)
+# environment
+# inserv._add('motor',  Faulhaber)
+# inserv._add('magnet', AMI430)
+# inserv._add('gate',  YokogawaGS200)
+# inserv._add('vna',   ZNB40_source, S = '11')
+# inserv._add('bluefors', BlueForsAPI)
+# inserv._add('RT', RT_thermometer, 'TCPIP0::192.168.1.110::INSTR')
+
  
 
 

@@ -132,6 +132,7 @@ class MeasurementScript_v2():
         self.offset_cool_down = 0.0 # seconds
         self.sweep_cool_down = 0.0 # seconds
         self.meas_delay_time = .5
+        self.irradation_delay_time = 0.0 # seconds
 
         self.amplitude = 0.0
         self.period = 28.0327 # equals 35.673mHz, 50Hz equals 20 ms
@@ -521,6 +522,7 @@ class MeasurementScript_v2():
                 sweep_time=sweep_time
                 )
             self.gw.vna.setOutput(False)
+            sleep(self.irradation_delay_time)
 
         self.save_state()
 

@@ -47,7 +47,7 @@ class Faulhaber(BaseDriver):
 
         "Limits can be at maximum +/- 1.8e9. Else overflow and movement direction is inverted."
 
-        self._moving = False
+        self.moving = False
         self._counter = 0
         self._idle_interval = 10
 
@@ -101,7 +101,7 @@ class Faulhaber(BaseDriver):
                 # handles notifier
                 match reading:
                     case 'p':
-                        self._moving = False
+                        self.moving = False
                         reading = self._inst.read()
                         # print('reached', self._inst.query('pos'))
                         self._inst.query('NP')
@@ -145,7 +145,7 @@ class Faulhaber(BaseDriver):
         # get speed / current
         return # self.retrieve_data()
         
-        # if self._moving:
+        # if self.moving:
         #     return self.retrieve_data()
         # else:
         #     if (self._counter * self.refresh_delay) > self._idle_interval:
@@ -172,7 +172,7 @@ class Faulhaber(BaseDriver):
             "position": turns,
             # "speed": speed,
             # "current": current,
-            "moving": self._moving,
+            "moving": self.moving,
             # "temperature": temperature,
             }
     
@@ -187,14 +187,14 @@ class Faulhaber(BaseDriver):
         else:
             logger.debug('%s.set_moving(False)', self._name)
             self.query("V0")
-        self._moving = moving
+        self.moving = moving
 
     def get_moving(self):
         logger.debug('%s.get_moving()', self._name)
-        return self._moving
+        return self.moving
     
     def stop_query(self, query:str):
-        if self._moving:
+        if self.moving:
             self.query("V0")
             has_been_moving = True
         else:
@@ -212,7 +212,7 @@ class Faulhaber(BaseDriver):
 
     def get_target_position(self):
         logger.debug('%s.get_target_position()', self._name)
-        if self._moving:
+        if self.moving:
             return self.query("TPOS")
         else:
             return self._target_pos
@@ -224,7 +224,7 @@ class Faulhaber(BaseDriver):
 
     def get_target_speed(self):
         logger.debug('%s.get_target_speed()', self._name)
-        if self._moving:
+        if self.moving:
             return self.query("GV")
         else:
             return self._target_speed
